@@ -1,0 +1,2437 @@
+For many more examples of these queries, see [[Wikidata:SPARQL query service/queries/examples]] and [[Wikidata:SPARQL_query_service/queries]]. For a tutorial, see [[User:TweetsFactsAndQueries/A Guide To WDQS]]. For biomedical query examples, see [https://bitbucket.org/sulab/wikidatasparqlexamples/overview#markdown-header-get-a-wikidata-items-with-a-particular-disease-ontology-id].
+
+Also of interest: [[:mw:Help:Extension:Kartographer]]
+
+Note to self: Wikidata API can be used to get all properties for up to 50 items at once, e.g. https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q64|Q567&format=json
+<div style="display:flex;flex-wrap:wrap;">
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;flex-grow:1">
+'''Sub-pages:'''
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/collections|Global Collections]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/khalili|Khalili Collections]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/ee|Electronic Enlightenment and EMLO]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/hillforts|Hillforts]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/equity research|Knowledge equity research project]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/botany|Botanic expeditions]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[../sappho|From Sappho to Suffrage]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/screennation|Screen Nation]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/booker|Booker Prize]]
+</div>
+<div style="display:inline-block;padding:1rem;border:#666 solid 1px;border-radius:5px;font-weight:700;margin:0 .5rem .5rem 0;background-image:linear-gradient(#f8f8f8,#e8e8f0,#dddde8);flex-grow:1;text-align:center;">
+[[/calendars|Calendars]]
+</div>
+</div>
+== Counting stuff on Wikidata ==
+
+Go to [[Wikidata:Statistics]] for counts of people, organizations, occurrences etc.
+=== All Wikidata properties with label and description, ordered numerically ===
+Adapted from one of the Query Service Examples
+
+{{SPARQL|query=#title:Wikidata properties in numerical order
+SELECT ?property ?propertyType ?propertyLabel ?propertyDescription WHERE {
+  ?property wikibase:propertyType ?propertyType .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ASC(xsd:integer(STRAFTER(STR(?property), 'P')))
+}}
+
+=== Variation of the above excluding external IDs (thanks Magnus Sälgö) ===
+{{SPARQL|query=#title:Wikidata properties excluding external IDs
+SELECT ?id ?idLabel ?idDescription ?new{
+  ?id wikibase:directClaim ?pid .
+ minus{?id wikibase:propertyType wikibase:ExternalId}
+  BIND(Replace(STR(?id),"http://www.wikidata.org/entity/P"," ") as ?new)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+ORDER BY DESC(xsd:integer(?new))
+}}
+
+=== Count of scientific articles ===
+{{SPARQL|query=SELECT (COUNT(?article) AS ?count)
+WHERE {
+?article wdt:P31/wdt:P279* wd:Q13442814
+}
+}}
+
+=== Count of fictional characters ===
+{{SPARQL|query=#title:Count of fictional characters
+SELECT (COUNT(DISTINCT ?article) AS ?count)
+WHERE {?article wdt:P31/wdt:P279* wd:Q95074}
+}}
+
+=== Count of items with coordinate locations ===
+{{SPARQL|query=#title:Count of items with coordinate locations
+SELECT (COUNT(?item) AS ?count)
+WHERE { ?item wdt:P625 [] }
+}}
+
+=== Count of labels for a given item, broken down by language ===
+{{SPARQL|query=#title:Number of labels for an item, split by language
+SELECT ?q ?langcode ?langLabel (COUNT(?label) AS ?count) WHERE {
+VALUES ?q {wd:Q43459}
+  ?q (rdfs:label|skos:altLabel) ?label
+  BIND(LANG(?label) AS ?langcode)
+  ?lang wdt:P218 ?langcode
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} GROUP BY ?q ?langcode ?langLabel
+ORDER BY DESC(?count)
+}}
+
+=== Women born in the UK ===
+{{SPARQL|query=SELECT DISTINCT ?p ?pLabel ?pDescription WHERE {
+?p wdt:P31 wd:Q5;
+   wdt:P21 wd:Q6581072;
+{?p wdt:P19 wd:Q145} # place of birth: UK
+  UNION {?p wdt:P19 ?place.
+         { ?place wdt:P131?/wdt:P17 wd:Q145 } # places whose country is the UK
+         UNION
+         { ?place wdt:P131*/wdt:P17?/wdt:P31 wd:Q3336843 } # places whose country is a constituent of the UK
+ }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?pLabel
+}}
+
+=== Women with place of birth: UK ===
+{{SPARQL|query=SELECT DISTINCT ?p ?pLabel ?pDescription WHERE {
+?p wdt:P31 wd:Q5;
+   wdt:P21 wd:Q6581072;
+   wdt:P19 wd:Q145.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?pLabel
+}}
+
+== Voltaire ==
+=== Wikipedia articles about works ===
+{{SPARQL2|query=SELECT ?work ?title ?year ?english ?french WHERE {
+  ?work wdt:P50 wd:Q9068
+OPTIONAL{?work wdt:P577 ?pubdate}
+BIND(YEAR(?pubdate) as ?year)
+OPTIONAL{ ?english schema:about ?work ; schema:isPartOf <https://en.wikipedia.org/> }
+OPTIONAL{ ?french schema:about ?work ; schema:isPartOf <https://fr.wikipedia.org/> }
+#OPTIONAL{ ?german schema:about ?work ; schema:isPartOf <https://de.wikipedia.org/> }
+OPTIONAL{ ?work rdfs:label ?title filter(lang(?title) = "en") }
+}
+}}
+
+=== Categorised timeline of works ===
+This query was improved by Navino Evans.
+
+{{SPARQL2|query=SELECT ?workLabel ?pubdate ?pubdatePrecision ?image ?typelabel ?english
+(URI(CONCAT("https://tools.wmflabs.org/reasonator/?q=", SUBSTR(STR(?work),32) )) as ?reasonator) #build a reasonator link
+(IF(BOUND(?english), ?english, ?reasonator) as ?link) # link to English Wikipedia article, if available
+WHERE {
+?work wdt:P50 wd:Q9068; # author: Voltaire
+   wdt:P31 ?type; # What is the work? poem, play, historical work etc.?
+   p:P577/psv:P577 ?pubdateStatementNode
+MINUS {?work wdt:P31 wd:Q3331189} # exclude editions
+MINUS {?work wdt:P31 wd:Q105420} # exclude anthologies
+?pubdateStatementNode wikibase:timeValue ?pubdate ;
+   wikibase:timePrecision ?pubdatePrecision # get precision of the publication date
+OPTIONAL {?work wdt:P18 ?image}
+OPTIONAL{ ?english schema:about ?work ; schema:isPartOf <https://en.wikipedia.org/> }
+SERVICE wikibase:label {bd:serviceParam wikibase:language "fr,en,de"} # Prefer labels in French but fall back to English and German
+?type rdfs:label ?typelabel FILTER(lang(?typelabel) ="en") # English labels for the types
+}
+}}
+* [http://histropedia.com/showcase/wikidata-viewer.html?query=SELECT%20?workLabel%20?pubdate%20?pubdatePrecision%20?image%20?typelabel%20?english%20%20%0A(CONCAT(%22https://tools.wmflabs.org/reasonator/?q%3D%22,%20SUBSTR(STR(?work),32)%20)%20as%20?reasonator)%20%23build%20a%20reasonator%20link%0A(IF(BOUND(?english),%20?english,%20?reasonator)%20as%20?link)%20%0AWHERE%20%7B%0A%20%20?work%20wdt:P50%20wd:Q9068;%0A%20%20%20wdt:P31%20?type;%0A%20%20%20p:P577%20?pubdateStatement%20.%0AMINUS%20%7B?work%20wdt:P31%20wd:Q3331189%7D%0AMINUS%20%7B?work%20wdt:P31%20wd:Q105420%7D%0A?pubdateStatement%20psv:P577%20?pubdateStatementNode%20.%0A?pubdateStatementNode%20wikibase:timeValue%20?pubdate%20.%0A?pubdateStatementNode%20wikibase:timePrecision%20?pubdatePrecision%20.%20%23added%20date%20precision%0AOPTIONAL%20%7B?work%20wdt:P18%20?image%7D%0AOPTIONAL%7B%20?english%20schema:about%20?work.%20?english%20schema:isPartOf%20%3Chttps://en.wikipedia.org/%3E.%20%20%7D%0ASERVICE%20wikibase:label%20%7Bbd:serviceParam%20wikibase:language%20%22fr,en,de%22.%7D%0A?type%20rdfs:label%20?typelabel%20FILTER(lang(?typelabel)%20%3D%22en%22).%0A%7D&url=link&title=workLabel&from=pubdate&fromPrecision=pubdatePrecision&imageUrl=image&colourCodeBy=typelabel&threshold=1&filterGroup=typelabel&view=timeline The above timeline in Histropedia's Wikidata query viewer]
+
+=== Works ordered by how many language versions of Wikipedia have an article about them ===
+{{SPARQL|query=SELECT ?work ?workLabel (COUNT(DISTINCT ?sitelink) as ?linkcount) WHERE {
+  ?work wdt:P50 wd:Q9068.  # works by Voltaire
+MINUS {?work wdt:P31 wd:Q39811647} # translations
+MINUS {?work wdt:P31 wd:Q3331189} # editions
+MINUS {?work wdt:P31 wd:Q105420} # anthologies
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,de". }
+OPTIONAL{?sitelink schema:about ?work . # get Wikimedia pages about the work
+FILTER(CONTAINS(str(?sitelink), ".wikipedia.org/")) } # only Wikipedia links
+} GROUP BY ?work ?workLabel ORDER BY DESC(?linkcount)
+}}
+
+== Economics ==
+=== Birthplaces of economists ===
+On 28 April 2016:
+* 2062 found for occupation:economist
+* 4997 found for occupation:economist ''or'' field:economics
+* 4969 found for occupation:economist ''or'' field:economics minus double-counting. DISTINCT had no effect. Still some duplicate rows due to some places having multiple co-ordinates
+
+03 June 2016:
+* 6868 results. No change in the query explains the extra couple of thousand. Just more data?
+
+02 November 2016:
+* 8832 results.
+
+The map was getting frustratingly slow, and sometimes timing out, so I've split it into two.
+==== Dead ====
+{{SPARQL2|query=#defaultView:Map{"hide": ["?coord", "?layer"]}
+SELECT DISTINCT ?person ?name ?birthplace ?birthyear ?coord ?layer WHERE {
+   {?person wdt:P106 wd:Q188094} UNION {?person wdt:P101 wd:Q8134} MINUS {?person wdt:P106 wd:Q188094; wdt:P101 wd:Q8134}
+   ?person wdt:P570 ?dod;
+     wdt:P19 ?place .
+   ?place wdt:P625 ?coord
+   OPTIONAL { ?person wdt:P569 ?dob }
+   BIND(YEAR(?dob) as ?birthyear)
+  BIND(IF( (?birthyear < 1700), "Pre-1700", IF((?birthyear < 1751), "1700-1750", IF((?birthyear < 1801), "1751-1800", IF((?birthyear < 1851), "1801-1850", IF((?birthyear < 1901), "1851-1900", IF((?birthyear < 1951), "1901-1950", "Post-1950") ) ) ) )) AS ?layer )
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".?person rdfs:label ?name. ?place rdfs:label ?birthplace }
+} ORDER BY ?birthyear
+}}
+
+==== Living ====
+{{SPARQL2|query=#defaultView:Map{"hide": ["?coord"]}
+SELECT ?coord ?birthyear ?birthplace ?name ?person WHERE {
+   {?person wdt:P106 wd:Q188094 } UNION {?person wdt:P101 wd:Q8134} MINUS {?person wdt:P106 wd:Q188094; wdt:P101 wd:Q8134}
+   ?person wdt:P19 ?place .
+   ?place wdt:P625 ?coord .
+   OPTIONAL { ?person wdt:P569 ?dob }.
+   MINUS { ?person wdt:P570 ?dod }.
+   BIND(YEAR(?dob) as ?birthyear).
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". ?person rdfs:label ?name. ?place rdfs:label ?birthplace}
+}
+}}
+
+=== Economics Nobel Laureates' workplace location, with Wikipedia links ===
+{{SPARQL2|query=#defaultView:Map{"hide": ["?coord"]}
+SELECT ?name ?coord ?image ?workplace ?article WHERE {
+?person wdt:P166 wd:Q47170 ;
+     wdt:P108 ?place .
+?place wdt:P625 ?coord
+OPTIONAL{ ?person wdt:P18 ?image }
+OPTIONAL{ ?article schema:about ?person ; schema:isPartOf <https://en.wikipedia.org/> }
+MINUS{ ?person wdt:P31/wdt:P279? wd:Q15632617 } # exclude fictional people
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". ?place rdfs:label ?workplace. ?person rdfs:label ?name}
+}
+}}
+
+=== Economics Nobel Laureates' alma mater location ===
+{{SPARQL2|query=#defaultView:Map{"hide": ["?coord"]}
+SELECT ?name ?coord ?image ?almamater ?article WHERE {
+?person wdt:P166 wd:Q47170 ;
+        wdt:P69 ?place .
+?place wdt:P625 ?coord
+OPTIONAL{ ?person wdt:P18 ?image }
+OPTIONAL{ ?article schema:about ?person ; schema:isPartOf <https://en.wikipedia.org/> }
+MINUS{ ?person wdt:P31/wdt:P279? wd:Q15632617 } # Exclude fictional people
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". ?place rdfs:label ?almamater. ?person rdfs:label ?name}
+}
+}}
+
+=== Specialisms within economics and related nationalities ===
+{{SPARQL2|query=SELECT ?person ?name ?field ?fieldname ?nationality WHERE {
+   ?person wdt:P101 ?field; #?field = Q39680 for macroeconomics # Q39072 for microeconomics
+     wdt:P27 ?place .
+   ?field wdt:P279+ wd:Q8134 .
+   ?person rdfs:label ?name filter (lang(?name) = "en")
+   ?place rdfs:label ?nationality filter (lang(?nationality) = "en")
+   ?field rdfs:label ?fieldname filter (lang(?fieldname) = "en")
+MINUS{ ?person wdt:P31/wdt:P279? wd:Q15632617 } # exclude fictional people
+} ORDER BY ASC(?fieldname)
+}}
+
+Only four with field:macroeconomics One with field:microeconomics
+
+=== Economists with a Project Gutenberg ID and optionally an English Wikisource profile ===
+{{SPARQL2|query=SELECT DISTINCT ?person ?name ?birthyear ?deathyear ?enws ?quotes ?commonscat
+(URI(CONCAT("https://www.gutenberg.org/ebooks/author/", ?gutenberg_id)) AS ?gutenberg)
+(URI(CONCAT("https://doi.org/10.1093/ref:odnb/", ?odnb)) AS ?odnburl)
+(URI(CONCAT("http://onlinebooks.library.upenn.edu/webbin/book/lookupname?key=", ?books)) AS ?booksurl)
+(URI(CONCAT("https://www.britannica.com/", ?britannica)) AS ?britannicaurl) ?npg WHERE {
+{ ?person wdt:P106 wd:Q188094 }
+UNION
+{ ?person wdt:P101 wd:Q8134 }
+OPTIONAL {?person wdt:P1938 ?gutenberg_id}
+OPTIONAL { ?person wdt:P4629 ?books }
+OPTIONAL {
+  ?enws schema:about ?person;
+  schema:isPartOf <https://en.wikisource.org/>
+}
+FILTER (BOUND(?enws) || BOUND(?gutenberg_id) || BOUND(?books))
+OPTIONAL { ?person wdt:P570 ?death }
+BIND(YEAR(?death) AS ?deathyear)
+OPTIONAL { ?person wdt:P569 ?birth }
+BIND(YEAR(?birth) AS ?birthyear)
+OPTIONAL { ?person wdt:P1417 ?britannica }
+OPTIONAL { ?person wdt:P1816 ?npg }
+OPTIONAL { ?person wdt:P373 ?commonscat }
+OPTIONAL {
+  ?quote schema:about ?person;
+  schema:isPartOf <https://en.wikiquote.org/>
+}
+OPTIONAL { ?person wdt:P1415 ?odnb }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". ?person rdfs:label ?name }
+}
+ORDER BY ?deathyear
+}}
+
+=== Economics awards and their recipients, by year ===
+
+{{SPARQL2|query=SELECT DISTINCT ?person ?personLabel ?award ?awardLabel ?year WHERE {
+  ?person p:P166 ?statement.
+  ?statement ps:P166 ?award.
+  ?award wdt:P31 wd:Q17701409
+  OPTIONAL { ?statement pq:P585 ?date. BIND(YEAR(?date) AS ?year) }
+MINUS{ ?person wdt:P31/wdt:P279? wd:Q15632617 } # exclude fictional people
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC(?awardLabel) ASC(?year)
+}}
+
+=== Winners of multiple economics awards ===
+
+{{SPARQL2|query=SELECT DISTINCT ?person ?personLabel (COUNT(?award) AS ?awards) (GROUP_CONCAT(?awardLabel; separator=", ") as ?list) WHERE {
+  ?person wdt:P166 ?award.
+  ?award wdt:P31 wd:Q17701409
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" . ?award rdfs:label ?awardLabel . ?person rdfs:label ?personLabel }
+} GROUP BY ?person ?personLabel
+HAVING ( ?awards > 1 )
+ORDER BY DESC(?awards)
+}}
+
+=== People who won economics awards but are not listed as economists ===
+
+{{SPARQL2|query=SELECT DISTINCT ?person ?personLabel ?award ?awardLabel ?year WHERE {
+  ?person p:P166 ?statement.
+  ?statement ps:P166 ?award.
+  ?award wdt:P31 wd:Q17701409
+  MINUS { ?person wdt:P106 wd:Q188094 }
+MINUS{ ?person wdt:P31/wdt:P279? wd:Q15632617 } # exclude fictional people
+  OPTIONAL { ?statement pq:P585 ?date. BIND(YEAR(?date) AS ?year) }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC(?awardLabel) ASC(?year)
+}}
+
+=== Wikidata graph: fields of economics ===
+* [https://angryloki.github.io/wikidata-graph-builder/?property=P279&item=Q8134&iterations=8&mode=reverse Needs a lot of work]
+* Note to self: do one for types of economy, too
+
+=== Titles of (current) national finance ministers ===
+{{SPARQL2|query=SELECT ?countryLabel ?postLabel ?post WHERE {
+?post wdt:P279 wd:Q7614320;
+         wdt:P17 ?country
+MINUS{ ?post wdt:P576 [] } # Exclude abolished posts
+OPTIONAL{ ?post wdt:P1001 ?jurisdiction }
+FILTER( !(BOUND(?jurisdiction) && ?jurisdiction != ?country) )
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?countryLabel
+}}
+
+=== Timeline of Chancellors of the Exchequer ===
+{{SPARQL|query=#title:Chancellors of the Exchequer and time served in office
+SELECT ?item ?itemLabel ?start ?end ?image ?link ?partyLabel WHERE {
+  ?item p:P39 ?s.?s ps:P39 wd:Q531471.
+  ?s pq:P580 ?start. OPTIONAL {?s pq:P582 ?end}
+  OPTIONAL {?item wdt:P18 ?image}
+  OPTIONAL {?item wdt:P1417 ?id}
+  OPTIONAL {?item wdt:P102 ?party}
+  BIND(IF(BOUND(?id), URI(CONCAT("https://www.britannica.com/",?id)) , ?item) AS ?link)
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?start
+}}
+
+[http://histropedia.com/showcase/wikidata-viewer.html?q=%23title:Chancellors%20of%20the%20Exchequer%20and%20time%20served%20in%20office%0ASELECT%20?item%20?itemLabel%20?start%20?end%20?image%20?link%20?partyLabel%20WHERE%20%7B%0A%20%20?item%20p:P39%20?s.?s%20ps:P39%20wd:Q531471.%0A%20%20?s%20pq:P580%20?start.%20OPTIONAL%20%7B?s%20pq:P582%20?end%7D%0A%20%20OPTIONAL%20%7B?item%20wdt:P18%20?image%7D%0A%20%20OPTIONAL%20%7B?item%20wdt:P1417%20?id%7D%0A%20%20OPTIONAL%20%7B?item%20wdt:P102%20?party%7D%0A%20%20BIND(IF(BOUND(?id),%20URI(CONCAT(%22https://www.britannica.com/%22,?id))%20,%20?item)%20AS%20?link)%0A%20%20%20%20SERVICE%20wikibase:label%20%7B%20bd:serviceParam%20wikibase:language%20%22%5BAUTO_LANGUAGE%5D,en%22.%20%7D%0A%7D&d=2&l=link&t=itemLabel&s=start&e=end&i=image&c=partyLabel&v=t This query as a Histropedia timeline]
+
+=== Timeline of Chairs of the US Federal Reserve ===
+{{SPARQL|query=#title:Chairs of the US Federal Reserve and time spent in office
+SELECT ?item ?itemLabel ?start ?end ?image ?link ?nominatedLabel WHERE {
+  ?item p:P39 ?s.?s ps:P39 wd:Q2666591.
+  ?s pq:P580 ?start. OPTIONAL {?s pq:P582 ?end}
+  OPTIONAL {?item wdt:P18 ?image}
+  OPTIONAL {?item wdt:P1417 ?id}
+  OPTIONAL {?s pq:P4353 ?nominated}
+  BIND(IF(BOUND(?id), URI(CONCAT("https://www.britannica.com/",?id)) , ?item) AS ?link)
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?start
+}}
+
+[http://histropedia.com/showcase/wikidata-viewer.html?q=%23title:Chairs%20of%20the%20US%20Federal%20Reserve%20and%20time%20spent%20in%20office%0ASELECT%20?item%20?itemLabel%20?start%20?end%20?image%20?link%20?nominatedLabel%20WHERE%20%7B%0A%20%20?item%20p:P39%20?s.?s%20ps:P39%20wd:Q2666591.%0A%20%20?s%20pq:P580%20?start.%20OPTIONAL%20%7B?s%20pq:P582%20?end%7D%0A%20%20OPTIONAL%20%7B?item%20wdt:P18%20?image%7D%0A%20%20OPTIONAL%20%7B?item%20wdt:P1417%20?id%7D%0A%20%20OPTIONAL%20%7B?s%20pq:P4353%20?nominated%7D%0A%20%20BIND(IF(BOUND(?id),%20URI(CONCAT(%22https://www.britannica.com/%22,?id))%20,%20?item)%20AS%20?link)%0A%20%20%20%20SERVICE%20wikibase:label%20%7B%20bd:serviceParam%20wikibase:language%20%22%5BAUTO_LANGUAGE%5D,en%22.%20%7D%0A%7D&d=2&l=link&t=itemLabel&s=start&e=end&i=image&v=t This query as a Histropedia timeline]
+
+=== Free trade areas ===
+{{SPARQL|query=SELECT ?c ?cLabel ?item ?itemLabel WHERE {
+?item wdt:P31 wd:Q5335686.
+?c wdt:P463 ?item
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?itemLabel
+}}
+
+== Not Economics ==
+=== Stars in flag versus fertility ===
+{{SPARQL|query=SELECT ?iso ?countryLabel (SUM(?stars) as ?stars) ?fertility WHERE {
+{SELECT DISTINCT ?country ?iso WHERE {
+VALUES ?countrytypes {wd:Q6256 wd:Q3624078} # country and sovereign state
+?country wdt:P31 ?countrytypes ; wdt:P298 ?iso
+MINUS {?country wdt:P576 []} # Not dissolved
+}  }
+?country wdt:P163 ?flag.
+OPTIONAL{
+?flag p:P180 [ps:P180 ?feature ; pq:P1114 ?stars] . # quantity of feature
+?feature wdt:P279? wd:Q836708  # type of star polygon
+}
+OPTIONAL { ?country wdt:P4841 ?fertility }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} GROUP BY ?iso ?countryLabel ?fertility
+ORDER BY DESC(?stars) ?countryLabel
+}}
+
+== University of Oxford ==
+=== Colleges and Permanent Private Halls with coats of arms and official web sites ===
+{{SPARQL2|query=#defaultView:Map{"hide": ["?location"]}
+SELECT DISTINCT ?web ?collegeLabel (IF(BOUND(?hq), ?hq, ?coord) as ?location) ?arms WHERE {
+  {?college wdt:P31 wd:Q2581649} UNION {?college wdt:P31 wd:Q3338504}
+  MINUS {?college wdt:P576 []}
+  OPTIONAL { ?college p:P159/pq:P625 ?hq }
+  OPTIONAL { ?college wdt:P625 ?coord }
+ ?college wdt:P94 ?arms;
+          wdt:P856 ?web
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== How many Wikidata entities were educated at the University of Oxford? ===
+{{SPARQL2|query=SELECT (COUNT(?alum) AS ?count)
+WHERE
+{
+	?alum wdt:P69 wd:Q34433.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Notable people educated at colleges of the University of Oxford ===
+{{SPARQL2|query=SELECT ?college ?collegeLabel (COUNT(DISTINCT ?alum) AS ?count)
+WHERE {
+{?college wdt:P31 wd:Q2581649} UNION {?college wdt:P31 wd:Q3338504}. # college or private hall
+?alum wdt:P69 ?college.
+MINUS { ?alum wdt:P31 wd:Q15632617 } # Exclude fictional people
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+                        ?college rdfs:label ?collegeLabel }
+} GROUP BY ?college ?collegeLabel
+ORDER BY DESC(?count)
+}}
+
+=== How many Wikidata entities were educated at the University of Oxford ''or'' at individual colleges? ===
+{{SPARQL2|query=SELECT (COUNT(?alum) AS ?count)
+WHERE {
+	{ ?alum wdt:P69 wd:Q34433 }
+UNION { ?alum wdt:P69/wdt:P31 wd:Q2581649 }
+}
+}}
+
+=== Which of the above are fictional humans? ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?alumDescription ?college ?collegeLabel
+WHERE {
+	?alum wdt:P31 wd:Q15632617
+{?alum wdt:P69 wd:Q34433 }
+UNION {?college wdt:P31 wd:Q2581649.
+        ?alum wdt:P69 ?college}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Organisations founded by Oxford alumni (including colleges) ===
+{{SPARQL2|query=SELECT DISTINCT ?alum ?alumLabel ?collegeLabel ?org ?orgLabel
+WHERE {
+	{?alum wdt:P69 wd:Q34433 }
+UNION { {?college wdt:P31 wd:Q2581649} UNION {?college wdt:P31 wd:Q3338504}.
+        ?alum wdt:P69 ?college.}
+        ?org wdt:P112 ?alum.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC(?alumLabel)
+}}
+
+=== Female graduates of Pembroke College ===
+{{SPARQL2|query=SELECT ?person ?personLabel ?personDescription ?englishwp WHERE {
+?person wdt:P31 wd:Q5; # human
+        wdt:P21 wd:Q6581072; # sex or gender: female
+        wdt:P69 wd:Q82606. # Educated at Pembroke College, Oxford
+OPTIONAL {?englishwp schema:about ?person; schema:isPartOf <https://en.wikipedia.org/> } # English Wikipedia page
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?personLabel
+}}
+
+=== Awards won by international female Oxford alumni (including colleges) ===
+{{SPARQL2|query=SELECT DISTINCT ?alum ?alumLabel ?award ?awardLabel
+WHERE {
+	{?alum wdt:P69 wd:Q34433 }
+UNION {?college wdt:P31 wd:Q2581649.
+        ?alum wdt:P69 ?college}
+        ?alum wdt:P166 ?award.
+        ?alum wdt:P21 wd:Q6581072 .
+       MINUS { ?alum wdt:P27 wd:Q145 }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC(?awardLabel)
+}}
+
+=== Image grid of international female Oxford alumnae ===
+{{SPARQL|query=#defaultView:ImageGrid{"hide":["?image"]}
+SELECT DISTINCT ?alum ?alumLabel ?alumDescription ?image
+WHERE {
+	{?alum wdt:P69 wd:Q34433 .}
+UNION {?college wdt:P31 wd:Q2581649.
+        ?alum wdt:P69 ?college.}
+        ?alum wdt:P21 wd:Q6581072 .
+       MINUS { ?alum wdt:P27 wd:Q145 }.
+    OPTIONAL {?alum wdt:P18 ?image }.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Things discovered by Oxford alumni (including colleges & PP halls) ===
+{{SPARQL2|query=SELECT DISTINCT ?alum ?alumLabel ?collegeLabel ?discovered ?discoveredLabel
+WHERE {
+	{?alum wdt:P69 wd:Q34433 }
+UNION { { ?college wdt:P31 wd:Q2581649 } UNION { ?college wdt:P31 wd:Q3338504 }
+        ?alum wdt:P69 ?college }
+        ?discovered wdt:P61 ?alum
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC( ?alumLabel )
+}}
+
+=== Recipients of the Bodley Medal ===
+{{SPARQL2|query=SELECT ?winner ?winnerLabel ?winnerDescription
+WHERE {
+	?winner wdt:P166 wd:Q4936657.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Recent publications by living staff (or former staff) of the University of Oxford ===
+{{SPARQL2|query=SELECT DISTINCT ?authorLabel ?publication ?publicationLabel ?date
+WHERE {
+      { ?author wdt:P108 wd:Q34433 } # Listed as employees of the university
+UNION { {?college wdt:P31 wd:Q2581649 } UNION { ?college wdt:P31 wd:Q3338504 }.
+        ?author wdt:P108 ?college } # Listed as employees of a college or hall
+        MINUS{ ?author wdt:P570 ?date } # No death date
+        ?publication wdt:P50 ?author
+	OPTIONAL { ?publication wdt:P577 ?date }
+
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY DESC(?date)
+}}
+
+=== Map of things in Oxford colour-coded by type ===
+{{SPARQL|query=#defaultView:Map{"hide": ["?location"]}
+SELECT ?place ?placeLabel (SAMPLE(?loc) AS ?location) ?layer WHERE {
+?place wdt:P131 wd:Q34217;
+       wdt:P31 ?type.
+MINUS { ?place wdt:P576 [] } # Not closed down
+OPTIONAL { ?place wdt:P625 ?coords }
+OPTIONAL { ?place p:P159/pq:P625 ?hqcoords }
+BIND (IF (BOUND(?coords), ?coords, ?hqcoords) AS ?loc)
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". ?type rdfs:label ?layer.?place rdfs:label ?placeLabel }
+} GROUP BY ?place ?placeLabel ?layer
+}}
+
+=== Map of things in Oxford and what they are named after ===
+{{SPARQL|query=#defaultView:Map{"hide": ["?location"]}
+SELECT ?person ?personLabel (SAMPLE(?img) AS ?image) (SAMPLE(?loc) AS ?location) ?placeLabel WHERE {
+?place wdt:P131 wd:Q34217;
+       wdt:P138 ?person FILTER (?person != wd:Q34217).
+OPTIONAL { ?place wdt:P625 ?coords }
+OPTIONAL { ?place p:P159/pq:P625 ?hqcoords }
+BIND (IF (BOUND(?coords), ?coords, ?hqcoords) AS ?loc)
+OPTIONAL { ?person wdt:P18 ?img }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?person ?personLabel ?placeLabel
+}}
+
+== English Wikisource ==
+=== People with ENWS author profiles ===
+{{SPARQL|query=SELECT ?person ?enws WHERE {
+?person wdt:P31 wd:Q5.
+?enws schema:about ?person;
+schema:isPartOf <https://en.wikisource.org/> FILTER CONTAINS(STR(?enws), "Author:")
+} ORDER BY ?enws
+}}
+
+== Bodleian Libraries collections ==
+See also [[:commons:Category:Bodleian_Library_manuscripts]] and [[:w:en:Category:Bodleian_Library_collection]]
+
+=== Things in collections of the Bodleian ===
+{{SPARQL2|query=SELECT DISTINCT ?thing ?thingLabel (GROUP_CONCAT(DISTINCT ?year; separator=", ") as ?years) ?shelfmark (GROUP_CONCAT(DISTINCT ?langLabel ; separator=", ") as ?languages) WHERE {
+{ ?thing wdt:P195 wd:Q82133} UNION { ?thing p:P217/pq:P195 wd:Q82133 } #wd:Q16147979
+OPTIONAL {?thing wdt:P217 ?shelfmark}
+OPTIONAL {?thing wdt:P571 ?date. BIND(YEAR(?date) AS ?year) }
+OPTIONAL {?thing wdt:P407 ?lang }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" . ?thing rdfs:label ?thingLabel . ?lang rdfs:label ?langLabel }
+} GROUP BY ?thing ?thingLabel ?shelfmark
+ORDER BY ?thingLabel
+}}
+
+=== Bodleian manuscripts, with images and Commons categories ===
+{{SPARQL2|query=SELECT DISTINCT ?thing ?thingLabel ?image (URI(CONCAT("https://commons.wikimedia.org/wiki/Category:",?cat) ) AS ?commons) WHERE {
+{ ?thing wdt:P195 wd:Q82133 } UNION { ?thing p:P217/pq:P195 wd:Q82133 }
+{ ?thing wdt:P31 wd:Q87167 } UNION { ?thing wdt:P31 wd:Q48498 }
+OPTIONAL { ?thing wdt:P18 ?image }
+OPTIONAL { ?thing wdt:P373 ?cat }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?thingLabel
+}}
+
+== University of Edinburgh ==
+=== Notable people whose doctoral advisor was a University of Edinburgh alum (+ academic field) ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?supervisee ?superviseeLabel ?fieldLabel
+WHERE {
+	?alum wdt:P69 wd:Q160302.
+        ?supervisee wdt:P184 ?alum.
+        OPTIONAL {?supervisee wdt:P101 ?field.}
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Awards won by women who attended the University of Edinburgh ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?award ?awardLabel
+WHERE {
+?alum wdt:P69 wd:Q160302;
+  wdt:P21 wd:Q6581072;
+  wdt:P166 ?award.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Awards won by people employed by the University of Edinburgh ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?award ?awardLabel
+WHERE {
+?alum wdt:P108 wd:Q160302;
+  wdt:P166 ?award.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Organisations founded by people born in Edinburgh ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?org ?orgLabel
+WHERE
+{
+	?alum wdt:P19 wd:Q23436.
+        ?org wdt:P112 ?alum.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+== University of Bristol ==
+=== Notable alumni of the University of Bristol whose citizenship is not UK ===
+{{SPARQL2|query=SELECT ?nationality ?nationalityLabel ?alum ?alumLabel ?alumDescription
+WHERE {
+	?alum wdt:P69 wd:Q459506.
+       ?alum wdt:P27 ?nationality.
+       MINUS { ?alum wdt:P27 wd:Q145 }
+       OPTIONAL { ?alum schema:description ?alumDescription FILTER (lang(?alumDescription) = "en").}
+	   OPTIONAL { ?alum rdfs:label ?alumLabel FILTER (lang(?alumLabel) = "en").}
+  	   OPTIONAL { ?nationality rdfs:label ?nationalityLabel FILTER (lang(?nationalityLabel) = "en")}
+}
+ORDER BY ?nationalityLabel
+}}
+
+=== Notable people whose doctoral advisor was a University of Bristol alum (+ academic field) ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?supervisee ?superviseeLabel ?fieldLabel
+WHERE
+{
+	?alum wdt:P69 wd:Q459506.
+        ?supervisee wdt:P184 ?alum.
+        OPTIONAL {?supervisee wdt:P101 ?field.}
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Notable people whose doctoral advisor was a University of Bristol employee (+ academic field) ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?supervisee ?superviseeLabel ?fieldLabel
+WHERE
+{
+	?alum wdt:P108 wd:Q459506.
+        ?supervisee wdt:P184 ?alum.
+        OPTIONAL {?supervisee wdt:P101 ?field.}
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Awards won by alumni of the University of Bristol ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?award ?awardLabel
+WHERE
+{
+	?alum wdt:P69 wd:Q459506.
+        ?alum wdt:P166 ?award.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?awardLabel
+}}
+
+=== Awards won by people employed by the University of Bristol (at some point in their career) ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?award ?awardLabel
+WHERE
+{
+	?alum wdt:P108 wd:Q459506.
+        ?alum wdt:P166 ?award.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?awardLabel
+}}
+
+== University of Reading ==
+=== Awards won by alumni of the University of Reading ===
+{{SPARQL2|query=SELECT ?alum ?alumLabel ?awardLabel WHERE {
+  ?alum wdt:P69 wd:Q1432632 .
+  ?alum wdt:P166 ?award .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?alumLabel
+}}
+
+== White Rose Research Online ==
+=== Papers online at a White Rose URL but without "content deliverer: White Rose Research Online" qualifier ===
+{{SPARQL|query=SELECT ?item ?itemLabel WHERE {
+?item p:P953 ?s. ?s ps:P953 ?url FILTER (CONTAINS( STR(?url), "eprints.whiterose.ac.uk") )
+MINUS {?s pq:P3274 wd:Q24753667 }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+=== Papers by University of Leeds researchers with a Wikimedia-compatible licence ===
+{{SPARQL|query=#title:scholarly papers by University of Leeds researchers in White Rose repository with a free licence
+SELECT DISTINCT ?paper ?paperLabel ?licenceLabel ?fulltext WHERE {
+  ?author wdt:P108 wd:Q503424.   # Employee of University of Leeds
+  ?paper wdt:P31 wd:Q13442814; wdt:P50 ?author.   # scholarly article by this author
+  VALUES ?freelicence {wd:Q6905323 wd:Q6905942}   # CC-BY or CC-BY-SA
+  ?paper wdt:P275 ?licence . ?licence wdt:P629? ?freelicence.  # Article has this licence, or a specific edition such as CC-BY 3.0
+  ?paper wdt:P953 ?fulltext FILTER(CONTAINS(STR(?fulltext), "whiterose.ac.uk"))
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+} ORDER BY ?paper
+}}
+
+== Universities of the UK ==
+=== Map of universities ===
+{{SPARQL2|query=SELECT ?uni ?uniLabel ?loc ?link ?layer ?countyLabel WHERE {
+VALUES ?type {wd:Q875538 wd:Q902104 wd:Q3918}
+?uni wdt:P31 ?type;
+     wdt:P17 wd:Q145;
+     wdt:P856 ?link;
+     wdt:P625 ?loc.
+?type rdfs:label ?layer FILTER(Lang(?layer)='en').
+MINUS {?uni wdt:P576 []}
+OPTIONAL {?uni wdt:P131 ?county}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+== Museums ==
+=== Museums with Twitter accounts ===
+'''plus optional Instagram and Facebook'''
+
+{{SPARQL2|query=SELECT DISTINCT ?museum ?museumLabel ?countryLabel (URI(CONCAT("https://www.facebook.com/",?facebook)) AS ?facebooklink) (URI(CONCAT("https://www.instagram.com/",?instagram)) AS ?instagramlink) (URI(CONCAT("https://twitter.com/",?twitter)) AS ?twitterlink)
+WHERE {
+?museum wdt:P31/wdt:P279* wd:Q33506;
+  wdt:P2002 ?twitter.
+OPTIONAL { ?museum wdt:P17 ?country}
+OPTIONAL { ?museum wdt:P2013 ?facebook}
+OPTIONAL { ?museum wdt:P2003 ?instagram}
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,nl,fr,de,es,pt,bg,be,ru,hu,uk,ja"}
+} ORDER BY ?countryLabel ?museumLabel
+}}
+
+=== Things that museums are named after ===
+{{SPARQL2|query=SELECT DISTINCT ?museum ?museumLabel ?countryLabel ?named ?namedLabel ?namedDescription
+WHERE {
+?museum wdt:P31/wdt:P279* wd:Q33506;
+  wdt:P138 ?named.
+OPTIONAL { ?museum wdt:P17 ?country}
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,nl,fr,de,es,pt,bg,be,ru,hu,uk,ja"}
+} ORDER BY ?countryLabel ?museumLabel
+}}
+
+=== Global map of art museums, with their web sites ===
+{{SPARQL2|query=#defaultView:Map
+SELECT DISTINCT ?museum ?museumLabel ?coord ?image ?web
+WHERE {
+?museum wdt:P31 wd:Q207694;
+   wdt:P625 ?coord .
+OPTIONAL {?museum wdt:P18 ?image}.
+OPTIONAL {?museum wdt:P856 ?web}.
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,nl,fr,de,es,pt"}
+}
+}}
+
+=== Map of museums in the UK, with images and web sites ===
+{{SPARQL2|query=#defaultView:Map
+SELECT DISTINCT ?web ?museum ?museumLabel (SAMPLE(?coord) AS ?coord) (SAMPLE(?image) AS ?image)
+WHERE {
+?museum wdt:P31/wdt:P279* wd:Q33506;
+   wdt:P17 wd:Q145;
+   wdt:P625 ?coord.
+OPTIONAL {?museum wdt:P856 ?web}
+OPTIONAL {?museum wdt:P18 ?image}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?web ?museum ?museumLabel
+}}
+
+== History of Science ==
+=== Things that stars, galaxies, star clusters and nebulae are named after ===
+{{SPARQL2|query=SELECT DISTINCT ?obj ?objLabel ?objDescription ?nom ?nomLabel ?nomDescription
+WHERE {
+   {?obj wdt:P31/wdt:P279* wd:Q318} UNION {?obj wdt:P31/wdt:P279* wd:Q523}
+  UNION {?obj wdt:P31/wdt:P279* wd:Q1054444}
+  UNION {?obj wdt:P31/wdt:P279* wd:Q168845}
+    ?obj wdt:P138 ?nom
+   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC(?objLabel)
+}}
+
+=== Things that planets and their moons are named after ===
+{{SPARQL2|query=SELECT DISTINCT ?planet ?planetLabel ?planetDescription ?nom ?nomLabel ?nomDescription
+WHERE {
+	?planet wdt:P31/wdt:P279* wd:Q3132741 .
+    ?planet wdt:P138 ?nom.
+  ?planet wdt:P397 ?parent.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }.
+} ORDER BY DESC(?parent)
+}}
+
+=== Things that spacecraft are named after ===
+{{SPARQL2|query=SELECT DISTINCT ?obj ?objLabel ?objDescription ?nom ?nomLabel ?nomDescription
+WHERE {
+{?obj wdt:P31/wdt:P279* wd:Q40218} # type of spacecraft
+UNION {?obj wdt:P31/wdt:P279* wd:Q13226541}. # or spaceflight programme
+    ?obj wdt:P138 ?nom #named after
+   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ASC(?objLabel)
+}}
+
+=== Things that discovered stars ===
+{{SPARQL2|query=SELECT ?discoverer ?discovererLabel
+	(COUNT(DISTINCT ?star) as ?count)
+	(GROUP_CONCAT(DISTINCT(?starLabel); separator=", ") as ?stars)
+WHERE
+{
+	?ppart wdt:P279* wd:Q523 .
+	?star wdt:P31 ?ppart .
+	?star wdt:P61 ?discoverer .
+	SERVICE wikibase:label {
+		bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" .
+		?discoverer rdfs:label ?discovererLabel .
+		?star rdfs:label ?starLabel
+	}
+}
+GROUP BY ?discoverer ?discovererLabel
+ORDER BY DESC(?count)
+}}
+
+=== People who invented scientific instruments ===
+{{SPARQL2|query=SELECT ?discoverer ?discovererLabel ?instrument ?instrumentLabel
+WHERE {
+	?instrument wdt:P31/wdt:P279* wd:Q3099911 ;
+	 wdt:P61 ?discoverer .
+	SERVICE wikibase:label {
+		bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+== Biosphere ==
+See [[:w:Wikipedia:WikiProject_United_Nations/Biosphere_Reserve_Descriptions]]
+
+=== Map of Biosphere reserves with an entry and location in Wikidata but ''not'' in English Wikipedia ===
+{{SPARQL2|query=#defaultView:Map
+SELECT ?wikidata_item ?biosphere_reserve_name ?biosphereURL ?image ?location
+  WHERE {
+  ?wikidata_item wdt:P2520 ?biosphereURL ; # get a list of all biospheres
+   wdt:P625 ?location # and location
+  OPTIONAL{ ?wikidata_item wdt:P18 ?image }
+FILTER NOT EXISTS { ?enwp schema:about ?wikidata_item ; schema:isPartOf <https://en.wikipedia.org/> } # No article in English wikipedia
+   ?wikidata_item rdfs:label ?biosphere_reserve_name filter (lang(?biosphere_reserve_name) = "en")
+}
+}}
+
+=== Map of Biosphere reserves with an entry and location in Wikidata ''and'' an English Wikipedia article ===
+{{SPARQL2|query=#defaultView:Map
+SELECT ?wikidata_item ?biosphere_reserve_name ?biosphereURL ?wikipedia_article ?image ?location
+  WHERE {
+  ?wikidata_item wdt:P2520 ?biosphereURL ; # get a list of all biospheres
+     wdt:P625 ?location # and location
+  OPTIONAL{ ?wikidata_item wdt:P18 ?image }
+?wikipedia_article schema:about ?wikidata_item ;
+  schema:isPartOf <https://en.wikipedia.org/>. # Must have an article in English wikipedia
+  ?wikidata_item rdfs:label ?biosphere_reserve_name filter (lang(?biosphere_reserve_name) = "en")
+}
+}}
+
+=== Biosphere reserves with an entry but no location ===
+{{SPARQL2|query=SELECT ?wikidata_item ?biosphere_reserve_name ?biosphereURL
+  WHERE {
+  ?wikidata_item wdt:P2520 ?biosphereURL . # get a list of all biospheres
+  FILTER NOT EXISTS { ?wikidata_item wdt:P625 ?location.} # no location
+
+  ?wikidata_item rdfs:label ?biosphere_reserve_name filter (lang(?biosphere_reserve_name) = "en").
+ }
+}}
+
+== Music ==
+===Lutenists ordered by year of birth ===
+{{SPARQL2|query=SELECT ?player ?playerLabel ?article ?birthyear ?placeLabel
+WHERE {
+  ?player wdt:P1303 wd:Q180733.
+OPTIONAL {?player wdt:P569 ?born}.
+OPTIONAL {?player wdt:P19 ?place}.
+  BIND(YEAR(?born) as ?birthyear).
+OPTIONAL{ ?article schema:about ?player. ?article schema:isPartOf <https://en.wikipedia.org/>.  }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+ORDER BY ASC(?birthyear)
+}}
+
+== Artworks ==
+=== Birthplaces of painters in the Rijksmuseum collection (based on query by Jane Darnell) ===
+{{SPARQL2|query=#defaultView:Map
+SELECT DISTINCT ?painter ?painterLabel ?birthplaceLabel ?geoloc where {
+      ?painting wdt:P31/wdt:P279* wd:Q3305213 ;  # any painting (or type of painting)
+       wdt:P195 wd:Q190804 ;  # in collection Rijksmuseum
+       wdt:P170 ?painter . # get painter
+      ?painter wdt:P19 ?birthplace . # get painter's birthplace
+      ?birthplace wdt:P625 ?geoloc . #latitude and longitude
+  SERVICE wikibase:label {
+       bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,es"
+    }
+} }}
+
+=== Image gallery of oil paintings from Rijksmuseum ===
+{{SPARQL2|query=#defaultView:ImageGrid
+SELECT DISTINCT ?painting ?paintingLabel ?painterLabel ?image where {
+      ?painting wdt:P31/wdt:P279* wd:Q3305213 ;  # any painting (or type of painting)
+       wdt:P195 wd:Q190804 ;  # in collection Rijksmuseum
+       wdt:P170 ?painter ; # get painter
+       wdt:P186 wd:Q296955 ; # Made with oil paint
+       wdt:P18 ?image . # Image from Commons of the artwork
+  SERVICE wikibase:label {
+       bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,es"
+    }
+} LIMIT 160
+}}
+
+=== Visual art works by African-American women ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT ?person ?personLabel ?personimage ?work ?workLabel ?workimage WHERE {
+  ?person wdt:P172 wd:Q49085 ;  # African American
+  wdt:P21 wd:Q6581072 ;      # women
+  wdt:P106/wdt:P279* wd:Q3391743 .  # visual artists
+ OPTIONAL{ ?person wdt:P18 ?personimage }
+  ?work wdt:P170 ?person . # and their work
+ OPTIONAL{ ?work wdt:P18 ?workimage }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+  }
+}}
+
+=== Trans people in the arts ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT DISTINCT ?person ?personLabel ?personimage ?field ?fieldLabel WHERE {
+  {?person wdt:P21 wd:Q2449503 } UNION {?person wdt:P21 wd:Q1052281 }      # trans men and women
+  ?person wdt:P106/wdt:P279* wd:Q483501 .  # artist
+  ?person wdt:P106 ?field.
+  ?field wdt:P279* wd:Q483501
+MINUS {?field wdt:P279* wd:Q33999} # not actors
+         OPTIONAL{ ?person wdt:P18 ?personimage }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+  }
+}}
+
+== Art venues ==
+=== Art venues in the UK, but not pubs ===
+{{SPARQL2|query=#defaultView:Map{"hide":["?coord"]}
+SELECT DISTINCT ?item ?itemLabel ?url ?coord WHERE {
+  VALUES ?type {wd:Q15090615 wd:Q7062022} # Arts venues + not-for-profit arts organisations
+  ?item (wdt:P31/wdt:P279*) ?type.
+  ?item wdt:P17 wd:Q145. # in the UK
+  MINUS {?item wdt:P31 wd:Q212198} # Exclude pubs
+  OPTIONAL{?item wdt:P625 ?itemcoord}
+  OPTIONAL {?item wdt:P131/wdt:P625 ?wherecoord}
+  OPTIONAL {?item wdt:P856 ?url}
+  BIND(IF(BOUND(?itemcoord), ?itemcoord, ?wherecoord) AS ?coord)
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+  }
+}
+}}
+
+=== All art exhibitions known to Wikidata ===
+{{SPARQL2|query=SELECT DISTINCT ?item ?name ?place ?coord ?start ?end ?pointintime WHERE {
+  ?item (wdt:P31/wdt:P279*) wd:Q667276. # Art exhibitions
+  OPTIONAL {?item wdt:P131 ?where}
+  OPTIONAL {?item wdt:P580 ?start}
+  OPTIONAL {?item wdt:P582 ?end}
+  OPTIONAL {?item wdt:P585 ?pointintime}
+  OPTIONAL {?item wdt:P625 ?coord}
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,de,es,nl,ru".
+    ?item rdfs:label ?name.
+    ?where rdfs:label ?place
+  }
+}
+ORDER BY ?place ?name
+}}
+
+== Poems ==
+Note: poems are sometimes represented as {{P|31}} {{Q|7725634}}; {{P|136}} {{Q|5185279}}
+
+=== Poems from the 18th century, with their authors and languages ===
+{{SPARQL2|query=SELECT ?poem ?poemLabel ?languageLabel ?authorLabel ?year WHERE {
+?poem wdt:P31/wdt:P279? wd:Q5185279;
+OPTIONAL{?poem wdt:P577 ?pubdate}
+OPTIONAL{?poem wdt:P571 ?inception}
+OPTIONAL{?poem wdt:P50 ?author}
+OPTIONAL{?poem wdt:P407 ?language}
+BIND((IF (BOUND(?pubdate),?pubdate,?inception) ) AS ?date)
+BIND(YEAR(?date) AS ?year)
+FILTER (?year > 1699 && ?year < 1800)
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de,fr,ru"}
+} ORDER BY ?authorLabel ?year ?poemLabel
+}}
+
+=== Poems whose text is available online through Wikisource, or elsewhere ===
+{{SPARQL2|query=SELECT DISTINCT ?poem ?poemLabel ?authorLabel ?link WHERE {
+?poem wdt:P31/wdt:P279? wd:Q5185279;
+OPTIONAL{?poem wdt:P50 ?author}
+OPTIONAL{?poem wdt:P953 ?text}
+OPTIONAL{?wikisource schema:about ?poem; schema:isPartOf <https://en.wikisource.org/>}
+BIND((IF (BOUND(?text),?text,?wikisource) ) AS ?link)
+FILTER BOUND(?link)
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de,fr,ru"}
+} ORDER BY ?authorLabel
+}}
+* 875 results as of 23 March 2017
+* 1430 results as of 17 October 2018
+TODO: add links to text of volumes that a poem is published in.
+
+=== Poets of the Kingdom of Great Britain whose birth and death years are known ===
+{{SPARQL2|query=SELECT DISTINCT ?person ?personLabel (URI(CONCAT("http://viaf.org/viaf/",?viaf)) AS ?viaf_id) ?birthyear ?deathyear WHERE {
+?person wdt:P106 wd:Q49757;
+        wdt:P27 wd:Q161885;
+        wdt:P569 ?birthdate;
+        wdt:P570 ?deathdate.
+FILTER (!isBLANK(?birthdate))
+FILTER (!isBLANK(?deathdate))
+OPTIONAL{ ?person wdt:P214 ?viaf}
+BIND(YEAR(?birthdate) AS ?birthyear)
+BIND(YEAR(?deathdate) AS ?deathyear)
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de,fr,ru"}
+} ORDER BY ?birthyear
+}}
+
+=== People who wrote a notable poem but do not have "poet" included in their occupations ===
+{{SPARQL2|query=SELECT DISTINCT ?work ?workLabel ?author ?authorLabel ?article WHERE {
+?work wdt:P50 ?author ;
+       wdt:P31/wdt:P279? wd:Q5185279. # ?work is a poem
+?article schema:about ?work;
+	schema:isPartOf <https://en.wikipedia.org/> .
+MINUS {?author wdt:P106 wd:Q49757} # ?author is not listed as a poet
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?authorLabel
+}}
+
+=== Notable works (with an English Wikipedia article) by authors who have no notable works ===
+{{SPARQL2|query=SELECT DISTINCT ?work ?workLabel ?author ?authorLabel ?article WHERE {
+?work wdt:P50 ?author .
+?article schema:about ?work;
+	schema:isPartOf <https://en.wikipedia.org/> .
+?author wdt:P106 wd:Q49757
+MINUS {?author wdt:P800 []}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?authorLabel
+}}
+
+=== Works of Florence Earle Coates ===
+{{SPARQL2|query=SELECT ?work ?title ?firstline ?year ?enws ?enwp WHERE {
+  ?work wdt:P50 wd:Q5460603
+OPTIONAL{?work wdt:P577 ?pubdate}
+OPTIONAL{?work wdt:P1922 ?firstline}
+BIND(YEAR(?pubdate) as ?year)
+OPTIONAL{ ?enws schema:about ?work ; schema:isPartOf <https://en.wikisource.org/> }
+OPTIONAL{ ?enwp schema:about ?work ; schema:isPartOf <https://en.wikipedia.org/> }
+OPTIONAL{ ?work rdfs:label ?title filter(lang(?title) = "en") }
+}
+}}
+
+== Films ==
+=== Films with "it" in the title ===
+{{SPARQL|query=SELECT ?item ?title ?itemDescription
+WHERE {
+  ?item wdt:P31 wd:Q11424;
+        wdt:P1476 ?title.
+  BIND(LCASE(?title) AS ?normalised)
+  FILTER (CONTAINS(?normalised, ' it ') || STRSTARTS(?normalised, 'it ') || STRENDS(?normalised, ' it'))
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+ORDER BY (?title)
+}}
+
+== First lines ==
+=== What kinds of things have first lines? ===
+{{SPARQL2|query=SELECT (COUNT(?thing) AS ?count) ?typeLabel WHERE {
+?thing wdt:P1922 [];
+       wdt:P31 ?type.
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de,fr,ru"}
+} GROUP BY ?typeLabel
+ORDER BY DESC(?count)
+}}
+
+=== Poems, their languages, and the languages of their first lines ===
+{{SPARQL2|query=SELECT (COUNT(?thing) AS ?count) ?langLabel ?langlineLabel WHERE {
+?thing wdt:P1922 ?line.
+BIND(lang(?line) AS ?langlinecode)
+?langline wdt:P218 ?langlinecode
+OPTIONAL { ?thing wdt:P364 ?lang }
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de,fr,ru"}
+} GROUP BY ?langLabel ?langlineLabel
+ORDER BY ?langLabel DESC(?count)
+}}
+
+=== Works where the language of the first line differs from the original language of the work ===
+{{SPARQL2|query=SELECT ?work ?workLabel ?authorLabel ?langLabel ?langlineLabel WHERE {
+?work wdt:P1922 ?line;
+       wdt:P407 ?lang
+OPTIONAL {?work wdt:P50 ?author}
+BIND(lang(?line) AS ?langlinecode)
+?langline wdt:P218 ?langlinecode
+FILTER (?langline != ?lang)
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de,fr,ru"}
+} ORDER BY ?langLabel
+}}
+
+== Wikisource maintenance ==
+=== English Wikisource texts with a Wikidata entry but no indication of what they are ===
+Priority given to those that have more statements in Wikidata
+
+{{SPARQL2|query=SELECT ?ws ?wsLabel ?wsDescription ?statementcount
+WHERE {
+?article schema:about ?ws;
+    schema:isPartOf <https://en.wikisource.org/>.
+?ws wikibase:statements ?statementcount
+MINUS {?ws wdt:P31 [] } # No "instance of" property
+MINUS {?ws wdt:P279 [] } # No "subclass of" property
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY DESC(?statementcount)
+LIMIT 200
+}}
+
+=== English Wikisource texts with an "instance of": count by type ===
+{{SPARQL2|query=SELECT ?type ?typeLabel (COUNT(?ws) as ?count) (COUNT(?date) as ?have_date)
+WHERE {
+?article schema:about ?ws;
+	schema:isPartOf <https://en.wikisource.org/>.
+?ws wdt:P31 ?type
+OPTIONAL {?ws wdt:P577 ?date}
+MINUS {?type wdt:P279+ wd:Q17442446}
+MINUS {?type wdt:P279 wd:Q14204246}
+MINUS {?type wdt:P279+ wd:Q17379835}
+OPTIONAL {?type rdfs:label ?typeLabel filter(lang(?typeLabel) = "en") }
+} GROUP BY ?type ?typeLabel
+ORDER BY DESC(?count)
+}}
+
+=== Dead people with a Project Gutenberg ID but no English Wikisource profile, whose main language is English ===
+{{SPARQL2|query=SELECT DISTINCT ?person ?personLabel ?personDescription ?language ?death (URI(CONCAT("https://www.gutenberg.org/ebooks/author/", ?gutenberg)) AS ?gberglink) WHERE {
+  ?person wdt:P1938 ?gutenberg;
+    wdt:P570 ?death. # Dead people only
+  FILTER (?death <= "1946-01-01T00:00:00Z"^^xsd:dateTime)
+  MINUS {
+    ?enws schema:about ?person;
+      schema:isPartOf <https://en.wikisource.org/>
+  }
+  OPTIONAL {?person wdt:P1412 ?lang}.
+  FILTER (!BOUND(?lang) {{!}}{{!}} ?lang = wd:Q1860) # Language: English or absent
+  BIND(IF(BOUND(?lang),"English","Not specified") AS ?language
+)
+  SERVICE wikibase:label {
+       bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+    }
+}
+ORDER BY ?death
+}}
+
+== Letters ==
+''See also [[Q1784733]] Correspondence''
+
+=== Authors of notable letters, by number of letters ===
+{{SPARQL2|query=SELECT ?author ?authorLabel ?authorDescription (COUNT(?letter) as ?count)
+WHERE {
+  ?letter wdt:P50 ?author;
+   wdt:P31 wd:Q133492.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?author ?authorLabel ?authorDescription
+ORDER BY DESC(?count)
+}}
+
+=== Recipients of notable letters, by number of letters ===
+{{SPARQL2|query=SELECT ?recipient ?recipientLabel ?recipientDescription (COUNT(?letter) as ?count)
+WHERE {
+  ?letter wdt:P1817 ?recipient;
+   wdt:P31 wd:Q133492.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?recipient ?recipientLabel ?recipientDescription
+ORDER BY DESC(?count)
+}}
+
+''For the Wikisource text of letters, see [[:s:Category:Letters]]''
+
+== Lifeboat stations ==
+=== Map of lifeboat stations, with ownership ===
+{{SPARQL2|query=#defaultView:Map{"hide":["?location"], "markercluster": { } }
+SELECT ?url ?ownerLabel ?station ?stationLabel ?location (SAMPLE(?image) AS ?image)
+WHERE {
+?station wdt:P31 wd:Q11997323;
+  wdt:P625 ?location.
+OPTIONAL { ?station wdt:P18 ?image}
+OPTIONAL { ?station wdt:P127 ?owner}
+OPTIONAL { ?station wdt:P856 ?url }
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,no,sv,da,de"}
+} GROUP BY ?station ?stationLabel ?location ?ownerLabel ?url
+}}
+
+=== Lifeboat stations lacking a location ===
+{{SPARQL2|query=SELECT ?station ?stationLabel ?countryLabel
+WHERE {
+?station wdt:P31 wd:Q11997323;
+ wdt:P17 ?country.
+MINUS {?station wdt:P625 ?location}
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,no,sv,da,de"}
+} ORDER BY ?countryLabel
+}}
+
+== World War I ==
+=== Notable people from a specific region who fought in World War I ===
+
+==== Without images ====
+{{SPARQL2|query=SELECT ?name (CONCAT("Born ",str(?born), ", ",?birthplace,"; Died ", str(?died)) as ?dates) ?article WHERE {
+   ?person wdt:P19 ?place . # place of birth
+   {?place wdt:P131* wd:Q23165 } UNION { ?place wdt:P131* ?county. ?county wdt:P47 wd:Q23165 }. # born in Oxfordshire or adjacent county
+   ?person wdt:P607 wd:Q361 . # involved in World War I
+    # ?place wdt:P625 ?coord . # lat and long of birthplace
+     MINUS { ?person wdt:P18 ?image }. #image
+      ?person wdt:P569 ?dob . #date of birth
+	BIND(YEAR(?dob) as ?born).
+    OPTIONAL { ?person wdt:P570 ?dod }. #date of death
+  BIND(YEAR(?dod) as ?died).
+   ?person rdfs:label ?name filter (lang(?name) = "en")
+   ?place rdfs:label ?birthplace filter (lang(?birthplace) = "en")
+OPTIONAL{ ?article schema:about ?person. ?article schema:isPartOf <https://en.wikipedia.org/>.  }
+} ORDER by ?birthplace
+}}
+
+==== With images ====
+{{SPARQL2|query=#defaultView:ImageGrid
+SELECT DISTINCT ?image ?name (CONCAT("Born ",str(?born), "; Died ", str(?died)) as ?dates) ?birthplace ?article WHERE {
+?person wdt:P19 ?place ; # place of birth
+     wdt:P607 wd:Q361 ; # involved in World War I
+     wdt:P18 ?image ; #image
+     wdt:P569 ?dob #date of birth
+{?place wdt:P131* wd:Q48015 } UNION { ?place wdt:P131* ?county. ?county wdt:P47 wd:Q23169 } # born in SE England or adjacent county to Oxfordshire
+OPTIONAL { ?person wdt:P570 ?dod } #date of death
+BIND(YEAR(?dob) as ?born)
+BIND(YEAR(?dod) as ?died)
+?person rdfs:label ?name filter (lang(?name) = "en")
+?place rdfs:label ?birthplace filter (lang(?birthplace) = "en")
+OPTIONAL{ ?article schema:about ?person; schema:isPartOf <https://en.wikipedia.org/> }
+}
+}}
+
+== Theses ==
+=== All doctoral theses ===
+Showing all theses whether or not they have author details, with optional author or author name string, year and institution.
+
+{{SPARQL2|query=SELECT DISTINCT ?thesis ?thesisLabel ?author ?authorLabel ?authorname ?institutionLabel ?year ?url WHERE {
+  ?thesis wdt:P31 wd:Q187685 # doctoral theses
+  OPTIONAL {
+    { ?author wdt:P1026 ?thesis }
+    UNION
+    { ?thesis wdt:P50 ?author }
+  }
+  OPTIONAL { ?thesis wdt:P4101 ?institution }
+  OPTIONAL { ?thesis wdt:P953 ?url }
+  OPTIONAL { ?thesis wdt:P2093 ?authorname }
+  OPTIONAL { ?thesis wdt:P571 ?date } # inception
+  BIND(YEAR(?date) AS ?year)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Authors and their theses ===
+Use this as a maintenance query to find thesis relationships that do not point to a publication (such as doctoral thesis, edition, thesis, or book)
+{{SPARQL2|query=SELECT ?author ?authorLabel ?thesis ?typeLabel ?url WHERE {
+   ?author wdt:P1026 ?thesis .
+   ?thesis wdt:P31 ?type
+  OPTIONAL { ?thesis wdt:P953 ?url }
+   SERVICE wikibase:label {
+     bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+   }
+} ORDER BY ?typeLabel
+}}
+
+=== Doctoral theses without an author ===
+{{SPARQL|query=SELECT ?thesis ?thesisDescription ?languageLabel WHERE {
+?thesis wdt:P31 wd:Q187685
+MINUS { [] wdt:P1026 ?thesis }
+MINUS { ?thesis wdt:P50 [] }
+OPTIONAL { ?thesis wdt:P364 ?language }
+SERVICE wikibase:label {
+     bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+   }
+}
+}}
+
+=== Doctoral thesis with an author, but the author has no thesis ===
+{{SPARQL2|query=SELECT ?thesis ?thesisDescription ?author ?authorLabel WHERE {
+?thesis wdt:P31 wd:Q187685;
+        wdt:P50 ?author.
+MINUS { ?author wdt:P1026 [] }
+SERVICE wikibase:label {
+     bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+   }
+}
+}}
+
+=== Theses imported from Oxford Research Archive ===
+{{SPARQL2|query=SELECT ?thesis ?thesisDescription ?authorLabel ?authorwp ?ora_url WHERE {
+?thesis wdt:P31 wd:Q187685;  # doctoral theses
+        wdt:P4101 wd:Q34433;  # submitted to University of Oxford
+        wdt:P953 ?ora_url     # with open access link
+OPTIONAL {?thesis wdt:P50 ?author
+OPTIONAL{ ?authorwp schema:about ?author. ?authorwp schema:isPartOf <https://en.wikipedia.org/> } }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY DESC(?authorwp)
+}}
+
+=== All properties of theses (query by [[User:Jheald]]) ===
+{{SPARQL2|query=SELECT ?prop ?propLabel ?count ?exampleLabel WHERE {
+    {
+        SELECT ?prop (COUNT(DISTINCT ?item) AS ?count) (SAMPLE(?id) AS ?example) WHERE {
+           hint:Query hint:optimizer "None" .
+           ?classes wdt:P279* wd:Q1266946 .
+           ?item wdt:P31 ?classes .
+           ?item ?p ?id .
+           ?prop wikibase:directClaim ?p
+        }  GROUP BY ?prop
+    }
+    SERVICE wikibase:label {
+        bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+    }
+} ORDER BY DESC (?count)
+}}
+
+=== Oxford doctoral theses by their main topic ===
+{{SPARQL|query=SELECT ?subject ?url ?qLabel ?attrib (YEAR(?inception) AS ?year) WHERE {
+?q wdt:P4101 wd:Q34433; wdt:P921 ?subject; wdt:P953 ?url.
+OPTIONAL {?q wdt:P50 ?author. ?author rdfs:label ?authorname FILTER(lang(?authorname)= "en") }
+OPTIONAL {?q wdt:P2093 ?authorstring}
+OPTIONAL {?q wdt:P571 ?inception}
+BIND(IF(BOUND(?authorname),?authorname, ?authorstring) AS ?attrib).
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+== Sicily ==
+=== Archaeological sites with lat-long pairs placing them in Sicily ===
+{{SPARQL2|query=#defaultView:Map
+SELECT ?place ?placeLabel ?latlong (SAMPLE(?image) as ?image)
+WHERE
+{ ?place wdt:P31/wdt:P279* wd:Q839954; # Archaeological site (or type of)
+ wdt:P625 ?latlong;
+ p:P625 ?statement . # coordinate-location statement
+ OPTIONAL {?place wdt:P18 ?image }.
+  ?statement psv:P625 ?coord.
+  ?coord wikibase:geoLatitude ?lat .
+  ?coord wikibase:geoLongitude ?long .
+   FILTER (ABS(?lat - 37.5) < 1.3).
+   FILTER (ABS(?long - 14) < 1.5).
+ SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,it" }
+} GROUP BY ?place ?placeLabel ?latlong
+}}
+
+== Linguistics ==
+=== Things called "___ phonology" ===
+{{SPARQL|query=SELECT DISTINCT ?thing ?name WHERE {
+VALUES ?prop {wdt:P279 wdt:P31}
+?thing ?prop wd:Q40998;
+  rdfs:label ?name FILTER (lang(?name)="en") FILTER STRENDS(?name, " phonology")
+} ORDER BY ?name
+}}
+
+== Greek personal names ==
+=== People of Ancient Greece ===
+{{SPARQL2|query=SELECT DISTINCT ?person ?en_name WHERE {
+{?person wdt:P2596 wd:Q11772. ?person wdt:P31 wd:Q5 } # Person & Culture: Ancient Greece
+  UNION {?person wdt:P27/wdt:P31 wd:Q148837} # Citizen of a Polis
+  UNION {?person wdt:P551/wdt:P31 wd:Q148837 } # Resident of a Polis
+OPTIONAL{ ?person rdfs:label ?en_name FILTER(lang(?en_name) = "en")}
+} ORDER BY ?en_name
+}}
+
+846 results as of 9 Feb 2017
+
+=== Personal names in Ancient Greek of individual Ancient Greek people ===
+{{SPARQL2|query=SELECT DISTINCT ?person ?en_name ?name WHERE {
+{?person wdt:P2596 wd:Q11772} # Culture: Ancient Greece
+  UNION {?person wdt:P27/wdt:P31 wd:Q148837} # Citizen of a Polis
+  UNION {?person wdt:P551/wdt:P31 wd:Q148837 } # Resident of a Polis
+?person wdt:P1559 ?name;
+OPTIONAL{ ?person rdfs:label ?en_name FILTER(lang(?en_name) = "en")}
+} ORDER BY ?en_name
+}}
+
+== Cuneiform inscriptions ==
+=== Items with a CDLI ID and their English Wikipedia articles ===
+{{SPARQL2|query=SELECT ?item ?itemLabel (URI(CONCAT("http://cdli.ucla.edu/search/archival_view.php?ObjectID=",?id)) AS ?cdli)  ?enwp WHERE {
+  ?item wdt:P2474 ?id
+OPTIONAL{ ?enwp schema:about ?item; schema:isPartOf <https://en.wikipedia.org/> }
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+}
+}}
+
+=== Items plus Reasonator links ===
+{{SPARQL2|query=SELECT ?itemLabel (URI(CONCAT("https://tools.wmflabs.org/reasonator/?q=", SUBSTR(STR(?item),32) )) as ?reasonator) WHERE {
+  ?item wdt:P2474 []
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+}
+}}
+
+=== Labels for CDLI items in all languages ===
+{{SPARQL2|query=SELECT ?id (lang(?label) AS ?lang) ?label WHERE {
+  ?item wdt:P2474 ?id;
+rdfs:label ?label.
+} ORDER BY ?id ?lang
+}}
+
+=== Commons categories with images of items ===
+{{SPARQL2|query=SELECT ?item ?itemLabel ?id (URI(CONCAT("https://commons.wikimedia.org/wiki/Category:",?commons)) AS ?images) WHERE {
+  ?item wdt:P2474 ?id
+OPTIONAL{ ?item wdt:P373 ?commons }
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+}
+}}
+
+== Ancient Greek pottery ==
+=== All ancient Greek pottery items known to Wikidata, with Wikipedia links ===
+{{SPARQL2|query=SELECT DISTINCT ?item ?itemLabel ?itemDescription ?enwp WHERE {
+?item wdt:P31/wdt:P279? wd:Q738680  # instance of type of ancient Greek pottery
+OPTIONAL {?enwp schema:about ?item; schema:isPartOf <https://en.wikipedia.org/> }
+MINUS {?item wdt:P1080 []} # exclude fictional (Pandora's Box)
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,el,fr,de,pl,uk"}
+}
+}}
+
+=== Image gallery of ancient Greek pottery ===
+{{SPARQL2|query=#defaultView:ImageGrid
+SELECT DISTINCT ?item ?itemLabel ?image WHERE {
+?item wdt:P31/wdt:P279? wd:Q738680;  # instance of type of ancient Greek pottery
+      wdt:P18 ?image
+MINUS {?item wdt:P1080 []} # exclude fictional (Pandora's Box)
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,el,fr,de,pl,uk"}
+}
+}}
+
+=== Visual graph of types of pottery ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT ?type ?typeLabel ?typeimage ?supertype ?supertypeLabel WHERE {
+  ?type wdt:P279+ wd:Q17379525;
+        wdt:P279 ?supertype
+OPTIONAL{ ?type wdt:P18 ?typeimage }
+SERVICE wikibase:label {
+     bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+   }
+  }
+}}
+
+== Shakespeare ==
+=== Things named after Shakespeare's characters ===
+{{SPARQL2|query=SELECT DISTINCT ?obj ?objLabel ?objDescription ?char ?charLabel ?charDescription
+WHERE {
+?obj wdt:P138 ?char.
+?char wdt:P1441/wdt:P50 wd:Q692 # Present in a work written by William Shakespeare
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER By ASC(?work)
+}}
+
+== Translation ==
+=== Countries that have a Featured Article on Russian Wikipedia ===
+{{SPARQL|query=SELECT ?sitelink ?itemLabel WHERE {
+  ?item wdt:P31 wd:Q6256.
+  ?sitelink schema:isPartOf <https://ru.wikipedia.org/>;
+     schema:about ?item;
+     wikibase:badge wd:Q17437796 .
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} }}
+
+=== People that have a Good Article in Spanish Wikipedia but a sub-good article in English Wikipedia ===
+{{SPARQL|query=#title:People with a Good Article in Spanish Wikipedia but worse article in English Wikipedia
+SELECT ?item ?itemLabel ?itemDescription ?enwp ?eswp WHERE {
+  ?item wdt:P31 wd:Q5 .   # Human beings
+  ?eswp schema:isPartOf <https://es.wikipedia.org/>; # Spanish article exists
+     schema:about ?item;
+     wikibase:badge wd:Q17437798 . # Spanish article has Good Article badge
+  ?enwp schema:isPartOf <https://en.wikipedia.org/>; # English article exists
+     schema:about ?item.
+  MINUS {?enwp wikibase:badge []} # English article lacks any kind of badge
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,es" }
+} ORDER BY ?itemLabel
+}}
+
+=== German women with an article in English Wikipedia but not in German Wikipedia ===
+{{SPARQL|query=SELECT ?item ?itemLabel ?itemDescription ?birthdate ?deathdate
+WHERE
+{ ?item wdt:P31 wd:Q5 ;
+   wdt:P27 wd:Q183 ;
+   wdt:P21 wd:Q6581072 ;
+   wdt:P569 ?birthdate .
+OPTIONAL { ?item wdt:P570 ?deathdate }
+FILTER EXISTS { ?wen schema:about ?item ; schema:inLanguage "en" }
+FILTER NOT EXISTS { ?wde schema:about ?item ; schema:inLanguage "de" }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],de,en" }
+} ORDER BY ?birthdate
+}}
+
+=== Works of Hans Sachs with links to their online text ===
+{{SPARQL2|query=SELECT ?work ?workLabel ?year ?text ?wikisource
+WHERE {
+?work wdt:P50 wd:Q19543; # author: Hans Sachs
+   wdt:P577 ?pubdate.
+BIND(YEAR(?pubdate) AS ?year)
+OPTIONAL{?wikisource schema:about ?work; schema:isPartOf <https://de.wikisource.org/>} # text of work in German Wikisource
+OPTIONAL{?work wdt:P953 ?text} # link for text of work
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],de,en"}
+} ORDER BY ?year
+}}
+
+=== South African women on Wikipedia but not on Wikiquote ===
+{{SPARQL|query=SELECT ?item ?itemLabel ?english ?afrik (SAMPLE(?workLabel) AS ?occupation) WHERE {
+  ?item wdt:P27 wd:Q258; wdt:P21 wd:Q6581072
+     MINUS{ ?englishq schema:about ?item ; schema:isPartOf <https://en.wikiquote.org/> }
+     MINUS{ ?afrikq schema:about ?item ; schema:isPartOf <https://af.wikiquote.org/> }
+     OPTIONAL{ ?english schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> }
+     OPTIONAL{ ?afrik schema:about ?item ; schema:isPartOf <https://af.wikipedia.org/> }
+  OPTIONAL{?item wdt:P106 ?work}
+  FILTER (BOUND(?english) || BOUND(?afrik))
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". ?item rdfs:label ?itemLabel. ?work rdfs:label ?workLabel}
+} GROUP BY ?item ?itemLabel ?english ?afrik
+}}
+
+== Politicians ==
+=== What parliaments does Wikidata know about, and how many parliamentarians from each? ===
+{{SPARQL2|query=SELECT ?parliament ?parliamentLabel ?houseLabel (COUNT(?sen) AS ?members) (COUNT(?death) AS ?dead)
+WHERE {
+?parliament wdt:P279 wd:Q486839.
+OPTIONAL {?parliament wdt:P361 ?house }
+?sen wdt:P39 ?parliament.
+OPTIONAL {?sen wdt:P570 ?death}
+FILTER (?parliament NOT IN (wd:Q928764, wd:Q1055894, wd:Q928764) )
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+GROUP BY ?parliament ?parliamentLabel ?houseLabel
+ORDER BY DESC(?members)
+}}
+
+=== Places of education of Members of Parliament of the United Kingdom ===
+{{SPARQL2|query=#defaultView:BubbleChart
+SELECT (COUNT(?mp) AS ?mps) ?education ?educationLabel ?educationDescription
+WHERE {
+?mp wdt:P39 wd:Q16707842;
+    wdt:P69 ?education.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?education ?educationLabel ?educationDescription
+ORDER BY DESC(?mps)
+}}
+
+=== Map of House of Commons constituencies ===
+Wikipedia: [[:w:en:List_of_United_Kingdom_Parliament_constituencies]]
+
+[https://www.ordnancesurvey.co.uk/opendata/viewer/ OS Open data viewer for locating constituencies]
+
+{{SPARQL2|query=SELECT ?con ?conLabel ?loc ?enwp
+WHERE { ?con wdt:P31 wd:Q27971968;
+   wdt:P625 ?loc.
+ FILTER NOT EXISTS {?con wdt:P576 ?end} # Not abolished
+ OPTIONAL{ ?enwp schema:about ?con. ?enwp schema:isPartOf <https://en.wikipedia.org/>}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+} ORDER BY ?conLabel
+}}
+
+=== Places of education of US senators ===
+{{SPARQL2|query=#defaultView:BubbleChart
+SELECT (COUNT(?mp) AS ?mps) ?education ?educationLabel ?educationDescription
+WHERE {
+?mp wdt:P39 wd:Q4416090;
+    wdt:P69 ?education.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?education ?educationLabel ?educationDescription
+ORDER BY DESC(?mps)
+}}
+
+=== Places of education of US Representatives ===
+{{SPARQL2|query=SELECT (COUNT(?mp) AS ?mps) ?education ?educationLabel ?educationDescription
+WHERE {
+?mp wdt:P39 wd:Q13218630;
+    wdt:P69 ?education.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?education ?educationLabel ?educationDescription
+ORDER BY DESC(?mps)
+}}
+
+=== Jobs British MPs have had, other than politician or MP ===
+{{SPARQL2|query=#defaultView:BubbleChart
+SELECT (COUNT(DISTINCT ?mp) as ?mps) ?job ?jobLabel
+WHERE {
+?mp wdt:P31 wd:Q5; wdt:P39/wdt:P279? wd:Q16707842;
+    wdt:P106 ?job.
+FILTER (?job not in (wd:Q82955, wd:Q486839) )
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?job ?jobLabel
+ORDER BY DESC(?mps)
+}}
+Updated July 2021.
+
+=== Jobs held by senators in the US, other than Senator or politician ===
+{{SPARQL2|query=#defaultView:BubbleChart
+SELECT (COUNT(?sen) AS ?sens) ?job ?jobLabel
+WHERE {
+?sen wdt:P39 wd:Q4416090;
+    wdt:P106 ?job.
+FILTER (?job not in (wd:Q82955, wd:Q4416090) )
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?job ?jobLabel
+ORDER BY DESC(?sen)
+}}
+
+=== Parliaments and most commonly occurring jobs for members of each ===
+With thanks to [[User:Pasleim]]
+
+[https://wiki.blazegraph.com/wiki/index.php/NamedSubquery Link for more about the named subquery pattern]
+
+{{SPARQL2|query=select ?parliament ?parliamentLabel ?job ?jobLabel ?s
+  WITH {
+     SELECT (COUNT(?sen) AS ?sens) ?job ?parliament  WHERE {
+      ?sen wdt:P39 ?parliament;
+          wdt:P106 ?job.
+      ?parliament wdt:P279* wd:Q486839
+      FILTER (?job != wd:Q82955)
+    } GROUP BY ?job ?parliament HAVING (?sens > 1)
+  } AS %subquery
+WHERE{
+  {
+    SELECT ?parliament (MAX(?sens) AS ?s) WHERE{
+      INCLUDE %subquery
+    } GROUP BY ?parliament
+  }
+  INCLUDE %subquery
+  FILTER(?s = ?sens)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY DESC(?s)
+}}
+
+=== Members of the Whig party ===
+{{SPARQL2|query=SELECT ?person ?personLabel ?birthLabel ?deathLabel
+WHERE {
+?person wdt:P102 wd:Q108700
+OPTIONAL{ ?person wdt:P19 ?birth }
+OPTIONAL{ ?person wdt:P20 ?death }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER by ?personLabel
+}}
+
+== Mapping the UK ==
+=== Table of "shares border with" relations of English, Welsh and Scottish counties ===
+{{SPARQL2|query=SELECT ?place1 ?place1Label ?place2 ?place2Label ?refurl WHERE {
+?place1 p:P47 ?statement;
+  wdt:P31 ?place1type.
+?statement ps:P47 ?place2;
+FILTER (?place1type IN (wd:Q180673, wd:Q1138494, wd:Q15979307, wd:Q202435, wd:Q15060255)).
+OPTIONAL {?statement prov:wasDerivedFrom/pr:P854 ?refurl}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Map of National Trust properties ===
+{{SPARQL|query=#defaultView:Map{"hide": ["?coord"]}
+#title:Map of National Trust properties
+SELECT ?park ?parkLabel ?coord ?image ?web WHERE {
+?park wdt:P127 wd:Q333515;
+   wdt:P625 ?coord.
+OPTIONAL { ?park wdt:P18 ?image }
+OPTIONAL { ?park wdt:P856 ?web }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== National Trust properties for which Wikidata lacks the official web link ===
+{{SPARQL|query=SELECT ?park ?parkLabel ?parkDescription (SAMPLE(?image) AS ?image) WHERE {
+?park wdt:P127 wd:Q333515.
+ MINUS {?park wdt:P31/wdt:P279* wd:Q4502142} # Remove artworks
+OPTIONAL { ?park wdt:P18 ?image }
+MINUS { ?park wdt:P856 [] }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?park ?parkLabel  ?parkDescription
+ORDER BY ?parkLabel
+}}
+
+=== List of properties marked as owned by National Trust ===
+{{SPARQL2|query=SELECT ?park ?parkLabel (SAMPLE(?coord) AS ?coord) (SAMPLE(?image) AS ?image) ?web WHERE {
+?park wdt:P127 wd:Q333515.
+ MINUS {?park wdt:P31/wdt:P279* wd:Q4502142} # Remove artworks
+OPTIONAL { ?park wdt:P625 ?coord }
+OPTIONAL { ?park wdt:P18 ?image }
+OPTIONAL { ?park wdt:P856 ?web }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?park ?parkLabel ?web
+ORDER BY ?parkLabel
+}}
+
+=== "Shares border with" relations of UK parliamentary constituencies ===
+Data presently very sparse indeed!
+{{SPARQL2|query=SELECT ?place1 ?place1Label ?place2 ?place2Label ?refurl WHERE {
+?place1 p:P47 ?statement;
+  wdt:P31 ?place1type.
+?statement ps:P47 ?place2;
+FILTER (?place1type IN (wd:Q27971968)).
+OPTIONAL {?statement prov:wasDerivedFrom/pr:P854 ?refurl}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+== Mapping globally ==
+=== Wikidata Graph Builder ===
+* [https://angryloki.github.io/wikidata-graph-builder/?property=P47&item=Q23112&iterations=5 A very silly map of the counties of England and Wales]
+* [https://angryloki.github.io/wikidata-graph-builder/?property=P47&item=Q1204&iterations=5 Very silly map of North America]
+
+=== Very silly map of the contiguous US, as a query ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT ?place1 ?place1Label ?place2 ?place2Label WHERE {
+?place1 wdt:P31 wd:Q35657;
+  wdt:P47 ?place2.
+?place2 wdt:P31 wd:Q35657.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== What kinds of thing have geoshapes? ===
+{{SPARQL|query=#title:Types of thing that have a Geoshape on Commons
+SELECT (COUNT(?item) AS ?count) ?type ?typeLabel WHERE {
+  ?item wdt:P3896 []; wdt:P31 ?type
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} GROUP BY ?type ?typeLabel
+ORDER BY DESC(?count)
+}}
+
+=== Countries, their first-level administrative subdivisions, the total number of subdivisions, and the number with borders to other subdivisions ===
+{{SPARQL2|query=SELECT ?countryLabel ?divisiontype ?divisiontypeLabel (COUNT(?division) AS ?total) (COUNT(?bordered) AS ?with_borders) WHERE {
+?division wdt:P31 ?divisiontype.
+?divisiontype wdt:P279 wd:Q10864048;
+  wdt:P17 ?country.
+OPTIONAL {?division wdt:P47 ?bordered. ?bordered wdt:P31 ?divisiontype}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?countryLabel ?divisiontype ?divisiontypeLabel
+ORDER BY ?countryLabel
+}}
+
+=== Map of US National Parks, including official web sites and Twitter accounts ===
+{{SPARQL2|query=#defaultView:Map
+SELECT ?park ?parkLabel ?coord ?image ?web (URI(CONCAT("https://twitter.com/",?tw)) AS ?twitter) WHERE {
+?park wdt:P31 wd:Q5408678; wdt:P625 ?coord; wdt:P18 ?image; wdt:P856 ?web
+  OPTIONAL {?park wdt:P2002 ?tw}
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?parkLabel
+}}
+
+=== Global map of national parks ===
+{{SPARQL|query=#defaultView:Map{"hide": ["?coord"], "markercluster": { } }
+#title:Global map of national parks
+SELECT ?park ?countryLabel ?parkLabel ?coord (SAMPLE(?image) AS ?image) ?web WHERE {
+?park wdt:P31/wdt:P279* wd:Q46169; wdt:P625 ?coord.
+  OPTIONAL {?park wdt:P18 ?image}
+  OPTIONAL {?park wdt:P856 ?web}
+  OPTIONAL {?park wdt:P17 ?country}
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?park ?countryLabel ?parkLabel ?coord ?web
+}}
+
+=== Checking which nuclear power stations have Inception and which have Service entry ===
+{{SPARQL|query=SELECT ?object ?objectLabel ?countryLabel ?inception ?service_entry WHERE {
+?object (wdt:P31/wdt:P279*) wd:Q134447;
+   wdt:P17 ?country.
+  OPTIONAL {?object wdt:P571 ?inception}
+  OPTIONAL {?object wdt:P729 ?service_entry }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+  } ORDER BY ?countryLabel
+}}
+
+=== Sister-city relations between cities that have millions of inhabitants ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?city ?cityLabel ?image ?cityB
+WHERE {
+  ?cityB wdt:P31 wd:Q1637706 .
+  ?city wdt:P31 wd:Q1637706 ;
+        wdt:P190 ?cityB ;
+        wdt:P18 ?image
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+=== Things that are "located in" cities, but very far from those cities ===
+{{SPARQL|query=SELECT DISTINCT ?thing ?thingLabel ?city ?cityLabel ?distnum WHERE {
+?thing wdt:P131 ?city; wdt:P625 ?thingloc.
+?city wdt:P31 wd:Q515; wdt:P625 ?cityloc.
+  BIND(geof:distance(?thingloc, ?cityloc) AS ?distnum)
+FILTER (?distnum > 60)
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY DESC(?distnum)
+}}
+
+== Social media ==
+=== What kinds of notable things have Twitter accounts? ===
+As of 2022, this seems to time out and I can't get it to work within one minute. :(
+
+{{SPARQL|query=SELECT ?type ?typeLabel (COUNT(?thing) AS ?things) WHERE {
+?thing wdt:P2002 ?tw;
+       wdt:P31 ?type.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?type ?typeLabel
+ORDER BY DESC(?things)
+}}
+
+=== What kinds of notable things have Instagram accounts? ===
+As of 2022, this seems to time out and I can't get it to work within one minute.
+{{SPARQL|query=SELECT ?type ?typeLabel (COUNT(?thing) AS ?things) WHERE {
+?thing wdt:P2003 [];
+       wdt:P31 ?type.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?type ?typeLabel
+ORDER BY DESC(?things)
+}}
+
+=== Number of Facebook IDs versus number of Twitter IDs for things that are not people ===
+{{SPARQL|query=SELECT ?type ?typeLabel ((COUNT(?tw)) AS ?twitter) (COUNT(?fb) AS ?facebook) WHERE {
+{?t wdt:P2002 ?tw} UNION {?t wdt:P2013 ?fb}
+      ?t wdt:P31 ?type.
+  FILTER (?type != wd:Q5)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?type ?typeLabel
+ORDER BY DESC(?twitter)
+LIMIT 80
+}}
+
+=== Mastodon accounts ===
+{{SPARQL|query=#title:Mastodon accounts and corresponding Twitter accounts
+SELECT ?twit ?item ?itemLabel ?itemDescription ?id WHERE {
+  ?item wdt:P4033 ?id.
+  OPTIONAL {?item wdt:P2002 ?twit}
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?itemLabel
+}}
+
+== Fictional worlds ==
+=== Overview of types of fictional characters in Wikidata ===
+{{SPARQL2|query=SELECT ?type ?typeLabel (COUNT(?character) AS ?count)
+WHERE {
+?character wdt:P31 ?type.
+?type wdt:P279* wd:Q95074
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} GROUP BY ?type ?typeLabel ORDER BY DESC(?count)
+}}
+
+=== Group membership of wizards in the Harry Potter universe ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT ?wizard ?wizardLabel ?groupLabel ?group WHERE {
+?wizard wdt:P31 wd:Q15298259; # in Harry Potter universe
+  wdt:P463 ?group
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== TreeView Map of houses and groups in the HP universe ===
+{{SPARQL2|query=#defaultView:TreeMap
+SELECT ?group ?groupLabel ?wizardLabel ?wizard WHERE {
+?wizard wdt:P31 wd:Q15298259; # in Harry Potter universe
+  wdt:P463 ?group.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+Created for the blog post [https://blog.wikimedia.org/2017/03/08/wizards-muggles-wikidata/ "Wizards, Muggles and Wikidata: The Room of Requirements for structured knowledge"]
+
+=== Characters and real people that inspired them ===
+P794 ("as") needs to be replaced by P3831 ("object has role")
+
+{{SPARQL2|query=SELECT DISTINCT ?fiction ?fictionLabel ?fictionDescription ?realLabel ?realDescription ?asLabel WHERE {
+?fiction p:P941 ?statement;
+         wdt:P31/wdt:P279* wd:Q95074.
+  ?statement ps:P941 ?real.
+  ?real wdt:P31 wd:Q5
+OPTIONAL {?statement pq:P794 ?as}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?fictionLabel
+}}
+
+=== Characters and what they are named after ===
+{{SPARQL2|query=SELECT DISTINCT ?char ?charLabel ?charDescription ?after ?afterLabel ?afterDescription WHERE {
+?char wdt:P31/wdt:P279? wd:Q95074 ;
+ wdt:P138 ?after .
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?charLabel
+}}
+
+=== Things that are "based on" a person ===
+English description of {{P|144}} suggests the object has to be a work.
+
+{{SPARQL|query=SELECT DISTINCT ?thing ?thingLabel ?thingDescription ?personLabel WHERE {
+?thing wdt:P144 ?person.
+  ?person wdt:P31 wd:Q5
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Fictional wars ===
+Based on a query by [[User:Kaitary]]
+{{SPARQL|query=#defaultView:Graph
+SELECT ?from ?fromLabel ?to ?toLabel ?rgb WHERE {
+  {SELECT (?fictional_war AS ?from) (?universe AS ?to) ("F7FF00" as ?rgb) WHERE {
+  ?fictional_war wdt:P31 wd:Q17198419. OPTIONAL{?fictional_war wdt:P1080 ?narr_universe}
+    OPTIONAL {?fictional_war wdt:P8345 ?franchise }
+    OPTIONAL {?fictional_war wdt:P1441 ?work }
+    BIND(COALESCE(?narr_universe, ?franchise, ?work, '') AS ?universe)
+  } }
+UNION {SELECT (?participant AS ?from) (?fictional_war AS ?to) ("7FFF00" as ?rgb) WHERE {
+   ?fictional_war wdt:P31 wd:Q17198419.
+OPTIONAL { ?fictional_war wdt:P710 ?participant } } }
+ SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+=== BBC Television series ===
+{{SPARQL|query=SELECT DISTINCT ?serLabel
+(URI(CONCAT("https://random.tv.longair.net/series/", SUBSTR(STR(?ser),32) )) as ?link)
+WHERE {
+?ser wdt:P31/wdt:P279? wd:Q5398426. # Television series, including miniseries etc.
+{?ser wdt:P272 wd:Q9531} UNION {?ser wdt:P449/wdt:P137 wd:Q9531 } # Produced by BBC or originally on channel owned by BBC
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?serLabel
+}}
+
+== Doctoral advisor family trees ==
+=== Longest (years) chains of doctoral advisors ===
+{{SPARQL|query=SELECT DISTINCT ?p1 ?p1Label ?p1birth ?p2 ?p2Label ?p2birth ?diff WHERE {
+?p2 wdt:P184/wdt:P184/wdt:P184/wdt:P184/wdt:P184/wdt:P184/wdt:P184/wdt:P184/wdt:P184+ ?p1;
+    wdt:P569 ?p2birth.
+?p1 wdt:P569 ?p1birth.
+  BIND(YEAR(?p2birth) - YEAR(?p1birth) AS ?diff)
+  FILTER ( ?diff > 700)
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY DESC(?diff)
+}}
+
+=== Chain between two people ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT DISTINCT ?person2 ?person2Label ?person1 ?person1Label?p2birth WHERE {
+wd:Q22092846 wdt:P184* ?person2.
+?person1 wdt:P184* wd:Q3118446.
+?person2 wdt:P184 ?person1;
+   wdt:P569 ?p2birth.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY DESC(?p2birth)
+}}
+
+== Scholarly societies ==
+=== Graph of co-membership between scholarly societies ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT ?person ?personLabel ?group ?groupLabel ("7FFF00" as ?rgb)
+WHERE {
+  ?person wdt:P570 ?death FILTER (YEAR(?death) < 1800).
+  ?person wdt:P463 wd:Q123885. # That ?person is a person is implicit through membership
+  ?person wdt:P463 ?group FILTER (?group != wd:Q123885).
+  ?group wdt:P31/wdt:P279? wd:Q955824.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+TODO: Filter out those who are just members of the RS and no other society
+
+== UK National Archives ==
+
+Property: {{P|3029}}
+
+=== UKNA IDs of people who studied at Oxford and have an English Wikipedia page ===
+{{SPARQL|query=SELECT ?personLabel ?enwp (URI(CONCAT("https://discovery.nationalarchives.gov.uk/details/c/",?ukna)) AS ?uknalink) WHERE {
+?person wdt:P3029 ?ukna.
+?person wdt:P69 wd:Q34433.
+?enwp schema:about ?person; schema:isPartOf <https://en.wikipedia.org/>
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?personLabel
+}}
+
+=== UKNA links for UK cabinet ministers, with post held ===
+{{SPARQL|query=SELECT ?person ?personLabel ?positionLabel ?date (URI(CONCAT("https://discovery.nationalarchives.gov.uk/details/c/",?ukna)) AS ?url) WHERE {
+?person wdt:P3029 ?ukna; # person in UK National Archives
+   wdt:P39 ?position . ?position wdt:P361 wd:Q112014. # held position in Cabinet of the UK
+ ?person wdt:P570 ?date # death date
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+Histropedia timeline of this query: <nowiki>https://tinyurl.com/yy7dxstn</nowiki>
+
+=== People who have a UKNA ID and a US NARA ID ===
+{{SPARQL|query=SELECT ?personLabel ?personDescription (URI(CONCAT("https://discovery.nationalarchives.gov.uk/details/c/",?ukna)) AS ?uknalink)
+(URI(CONCAT("https://catalog.archives.gov/id/",?nara)) as ?naralink) WHERE {
+?person wdt:P3029 ?ukna; wdt:P1225 ?nara.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?personLabel
+}}
+
+Archives at: {{P|485}}
+
+== Taxonomies ==
+
+=== Species and their sitelinks ===
+{{SPARQL|query=SELECT ?species ?speciesLabel ?sitelink
+WHERE {
+?species wdt:P171* wd:Q7377 # Sub-species of mammal
+FILTER NOT EXISTS { [] wdt:P171 ?species } # Leaf nodes only
+?sitelink schema:about ?species. # Page 'about' species: could be Wikipedia article or not
+?species rdfs:label ?speciesLabel filter (lang(?speciesLabel) = "en")
+}
+}}
+
+=== Taxa of equivalent rank to Mammal ===
+{{SPARQL|query=SELECT ?taxon ?taxonLabel
+WHERE {
+?taxon wdt:P105 wd:Q37517 . # taxonomic rank: Class
+?taxon rdfs:label ?taxonLabel filter (lang(?taxonLabel) = "en")
+}
+}}
+
+=== Parent taxa of a particular species, with their rank ===
+{{SPARQL|query=SELECT ?item ?itemLabel ?classLabel
+WHERE
+{
+  wd:Q42196 wdt:P171* ?item .
+  ?item wdt:P105 ?class
+  SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== 'Leaf' taxa, their three super-taxa, and the rank of the highest super-taxon ===
+{{SPARQL2|query=SELECT ?item ?itemLabel ?item2Label ?item3Label ?item4Label ?item4rankLabel
+WHERE {
+?item wdt:P171+ wd:Q7377 .
+FILTER NOT EXISTS { [] wdt:P171 ?item } # Leaf nodes only
+?item wdt:P171 ?item2 .
+?item2 wdt:P171 ?item3 .
+?item3 wdt:P171 ?item4 .
+?item4 wdt:P105 ?item4rank
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} ORDER BY ?item4Label ?item3Label
+}}
+
+=== Taxons with an eBird identifier (i.e. birds), their Q number and number of Wikipedia articles ===
+{{SPARQL|query=SELECT ?wd ?wdLabel ?ebird_id (COUNT(?sitelink) AS ?sites) WHERE {
+?wd wdt:P3444 ?ebird_id.
+OPTIONAL {?sitelink schema:about ?wd FILTER(CONTAINS(str(?link), ".wikipedia.org/"))}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} GROUP BY ?wd ?wdLabel ?ebird_id
+}}
+
+== Names ==
+=== Things called "cancer", ordered by number of sitelinks ===
+{{SPARQL|query=SELECT ?itemLabel ?item ?itemDescription ?sites WHERE {
+  SERVICE wikibase:mwapi {
+      bd:serviceParam wikibase:api "EntitySearch" .
+      bd:serviceParam wikibase:endpoint "www.wikidata.org" .
+      bd:serviceParam mwapi:search "cancer" .
+      bd:serviceParam mwapi:language "en" .
+      ?item wikibase:apiOutputItem mwapi:item
+  }
+  ?item wikibase:sitelinks ?sites.
+MINUS {?item wdt:P31 wd:Q4167410} # Exclude Wikimedia disambiguation pages
+SERVICE wikibase:label {bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+} ORDER BY DESC(?sites)
+}}
+
+=== Places in France whose names end in "ange" ===
+Created in response to [https://www.reddit.com/r/Wikidata/comments/84btrb/looking_for_pattern_in_cities_names_in_france_eg/ a thread on Reddit].
+
+{{SPARQL|query=SELECT ?city ?name WHERE {
+?city wdt:P17 wd:Q142;
+      wdt:P625 [].
+?city rdfs:label ?name FILTER (lang(?name)="fr") FILTER ( REGEX(?name, "ange$", "") )
+}
+}}
+
+=== Phrasebook for types of food ===
+{{SPARQL|query=SELECT ?lang1 ?desc ?lang2 WHERE {
+?item wdt:P279 wd:Q2095.
+ ?item rdfs:label ?lang1 FILTER(lang(?lang1) = "en").
+ ?item schema:description ?desc FILTER(lang(?desc) = "en").
+ ?item rdfs:label ?lang2 FILTER(lang(?lang2) = "ca")
+} ORDER BY ?lang1
+}}
+
+=== Things that are described by an English language resource but lack an English label ===
+{{SPARQL|query=#title:Things that are described by an English language resource but lack an English label
+SELECT ?item ?url ?sites WHERE {
+  ?item p:P973 ?s. ?s ps:P973 ?url . ?s pq:P407 wd:Q1860 .
+  ?item wikibase:sitelinks ?sites
+  FILTER NOT EXISTS{?item rdfs:label ?label FILTER(LANG(?label) = "en") }
+} ORDER BY DESC(?sites)
+}}
+
+== Religious houses ==
+
+=== Monasteries in the United Kingdom ===
+{{SPARQL2|query=SELECT ?label ?subj (SAMPLE(?whereLabel) AS ?where) (SAMPLE(?countryLabel) as ?country) (SAMPLE(?orderLabel) AS ?order) WHERE
+{  ?subj wdt:P31/wdt:P279? ?type ;
+      rdfs:label ?label filter (lang(?label) = "en")
+?type wdt:P279? wd:Q44613. # instance of monastery or subtype
+OPTIONAL { ?subj wdt:P17/rdfs:label ?countryLabel filter (lang(?countryLabel) = "en") }
+OPTIONAL { ?subj wdt:P131/rdfs:label ?whereLabel filter (lang(?whereLabel) = "en") }
+OPTIONAL { ?subj wdt:P611/rdfs:label ?orderLabel filter (lang(?orderLabel) = "en") }
+MINUS {?subj wdt:P17 wd:Q142 } # not France
+ MINUS {?subj wdt:P17 wd:Q27 } # not Ireland
+?subj p:P625/psv:P625 ?loc. # coordinate-location statement
+  ?loc wikibase:geoLatitude ?lat .
+  ?loc wikibase:geoLongitude ?long .
+   FILTER (?lat > 50) FILTER (?lat < 63)
+   FILTER (?long > -10.5) FILTER (?long < 2.02)
+} GROUP BY ?label ?subj
+ORDER BY ?label
+}}
+
+== Images ==
+=== Some things with a Commons category but no specified image ===
+{{SPARQL|query=SELECT ?thing ?thingLabel ?cat WHERE {
+?thing wdt:P373 ?cat;
+       wdt:P31/wdt:P279* wd:Q39546
+MINUS { ?thing wdt:P18 [] }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+} LIMIT 50
+}}
+
+== China Biographical Database ==
+See also [[Wikidata:WikiProject_East_Asia/China_Biographical_Database_import]]
+
+=== CBDB-VIAF mapping===
+{{SPARQL2|query=SELECT ?item ?en_name ?zh_name ?cbdb ?viaf WHERE {
+?item wdt:P497 ?cbdb;
+      wdt:P214 ?viaf.
+OPTIONAL{ ?item rdfs:label ?en_name filter (lang(?en_name) = "en") }
+OPTIONAL{ ?item rdfs:label ?zh_name filter (lang(?zh_name) = "zh") }
+} ORDER BY ?cbdb
+}}
+
+=== All non-CBDB IDs for things with a CBDB ID ===
+{{SPARQL|query=SELECT ?cbdb ?idlabel ?value WITH {
+  SELECT DISTINCT ?item ?cbdb WHERE {
+    ?item wdt:P497 ?cbdb
+  }
+} AS %subquery WHERE {
+  INCLUDE %subquery .
+  ?id wikibase:propertyType wikibase:ExternalId; wikibase:claim ?p; wikibase:statementProperty ?ps; wdt:P31/wdt:P279* wd:Q19595382 FILTER( ?id != wd:P497 ).
+  ?item ?p [ ?ps ?value ] .
+  ?id rdfs:label ?idlabel FILTER (lang(?idlabel) = "en").
+
+} ORDER BY ?idlabel
+}}
+
+=== Things with a CBDB ID but no country (/ gender) ===
+{{SPARQL|query=SELECT ?wd (CONCAT("http://db1.ihp.sinica.edu.tw/cbdbc/cbdbkmeng?~~AAA",?cbdb) AS ?cbdb_url) ?period WHERE {
+?wd wdt:P497 ?cbdb.
+OPTIONAL {?wd wdt:P2348 ?period}
+MINUS {?wd wdt:P27 [] } # country
+#MINUS {?wd wdt:P21 [] } # gender
+}
+}}
+
+== Historic China ==
+moved to [[User:MartinPoulter/queries/collections#Historic_China]]
+
+== Geography of India ==
+
+=== Districts and Regions of India (with Geonames) ===
+{{SPARQL|query=SELECT ?place ?placeLabel ?region ?regionLabel ?geonamesID WHERE {
+?place wdt:P31 wd:Q1149652;
+       wdt:P17 wd:Q668.
+OPTIONAL{ ?place wdt:P131 ?region
+            MINUS {?region wdt:P576 [] } # region not abolished
+        }
+OPTIONAL {?place wdt:P1566 ?geonamesID }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY ?regionLabel ?placelabel
+}}
+
+=== Temples and palaces in India ===
+{{SPARQL|query=SELECT ?building ?buildingLabel ?place ?placeLabel WHERE {
+VALUES ?type { wd:Q32815 wd:Q16560 } # palaces, temples . mosques= wd:Q44539
+  ?building wdt:P31/wdt:P279* ?type;
+          wdt:P17 wd:Q668. # in India
+OPTIONAL{ ?building wdt:P131 ?place }
+OPTIONAL{ ?building wdt:P625 ?coords }
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,id". }
+} ORDER BY ?regionLabel ?placelabel
+}}
+
+== Similarity ==
+=== Similarities between Calvin and Hobbes ===
+{{SPARQL|query=SELECT ?thing ?thingLabel WHERE {
+{wd:Q37577 ?p1 ?thing} UNION {?thing ?p1 wd:Q37577} # calvin
+{wd:Q37621 ?p2 ?thing} UNION {?thing ?p2 wd:Q37621} # hobbes
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+== Periodic table ==
+=== Countries of citizenship of discoverers of elements ===
+{{SPARQL|query=SELECT ?countryLabel (COUNT(?element) AS ?count) (GROUP_CONCAT(DISTINCT ?elementLabel) AS ?list) WHERE {
+?element wdt:P31 wd:Q11344; # chemical element
+         wdt:P61/wdt:P27 ?country. # nationality of discoverer
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+                        ?country rdfs:label ?countryLabel. ?element rdfs:label ?elementLabel}
+} GROUP BY ?countryLabel
+ORDER BY DESC (?count)
+}}
+
+=== Elements, their discoverers and years of discovery ===
+{{SPARQL|query=SELECT ?element ?elementLabel ?atomicno (GROUP_CONCAT(?discovererLabel; separator=", ") AS ?discoverers) (MIN(YEAR(?discovery)) AS ?year) WHERE {
+?element wdt:P31 wd:Q11344; # chemical element
+         wdt:P1086 ?atomicno
+OPTIONAL{?element wdt:P61 ?discoverer}
+OPTIONAL{?element wdt:P575 ?discovery}
+MINUS{?element wdt:P279|wdt:P31 wd:Q1299291} # Remove hypothetical elements
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+                          ?element rdfs:label ?elementLabel. ?discoverer rdfs:label ?discovererLabel }
+} GROUP BY ?element ?elementLabel ?atomicno
+ORDER BY ?atomicno
+}}
+
+== Databases and digital libraries ==
+=== Sources of data for research ===
+Based on a query by @WikiDigi on Twitter
+
+{{SPARQL|query=SELECT DISTINCT ?storeLabel ?url (GROUP_CONCAT(DISTINCT ?typeLabel;separator=", ") AS ?types) ?subjectLabel
+WHERE {
+VALUES ?type {wd:Q5227308 wd:Q22692845 wd:Q7689673 wd:Q4117139
+                          wd:Q5281480 wd:Q212805 wd:Q5570651}
+?store wdt:P31/wdt:P279* ?type;
+         wdt:P856 ?url;
+         wdt:P31 ?type
+MINUS {?store wdt:P576 []}
+OPTIONAL {?store wdt:P921 ?subject.}
+SERVICE wikibase:label {
+  bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+  ?type rdfs:label ?typeLabel. ?store rdfs:label ?storeLabel. ?subject rdfs:label ?subjectLabel
+                       }
+} GROUP BY ?storeLabel ?url ?subjectLabel ORDER BY UCASE(?storeLabel)
+}}
+
+=== Sources of data lacking the Official URL property ===
+{{SPARQL|query=SELECT ?store ?storeLabel ?typeLabel WHERE {
+VALUES ?type { wd:Q22692845 wd:Q7689673 wd:Q4117139 wd:Q5227308 wd:Q5570651 wd:Q5281480 wd:Q212805 }
+?store wdt:P31 ?type
+MINUS{ ?store wdt:P856 [] }
+
+SERVICE wikibase:label {
+  bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+                       }
+} ORDER BY ?typeLabel UCASE(?storeLabel)
+}}
+
+== Wikipedia infoboxes ==
+=== Most common properties for a type of item on a given language Wikipedia ===
+Thanks to User:Piecesofuk and User:Infrastruktur for improvements.
+{{SPARQL|query=# Most common properties (excluding external ids) for a type of item on a given Wikipedia
+SELECT ?id ?idlabel (round(?count*1000/?total)/10 AS ?percent)
+WITH {
+  SELECT ?item WHERE {
+    ?item wdt:P31/wdt:P279? wd:Q5398426 .
+    ?arwp schema:about ?item ; schema:isPartOf <https://ary.wikipedia.org/>
+  }
+} AS %list
+WITH {
+  SELECT (COUNT(?item) AS ?total) WHERE {
+    include %list
+  }
+} AS %total
+WITH {
+  SELECT ?id (COUNT(DISTINCT ?item) AS ?count) WHERE {
+    include %list
+    ?item ?p [] .
+    ?id wikibase:claim ?p . FILTER(?p != p:P31)
+    MINUS { ?id wikibase:propertyType wikibase:ExternalId }
+  }
+  GROUP BY ?id
+} AS %props
+WHERE {
+  include %props
+  include %total
+  ?id rdfs:label ?idlabel . FILTER (lang(?idlabel) = "en")
+}
+ORDER BY DESC(?percent)
+LIMIT 50
+}}
+
+== Wikidata Graphs ==
+
+* [https://angryloki.github.io/wikidata-graph-builder/?property=P279&item=Q7725634&iterations=2&mode=reverse Subclasses of "literary work"]
+
+=== Counts of items in subclasses of literary work ===
+{{SPARQL|query=SELECT ?type ?typename (COUNT(?text) AS ?count)
+WHERE {
+?text wdt:P31 ?type.
+?type wdt:P279* wd:Q7725634.
+?type rdfs:label ?typename filter (lang(?typename) = "en")
+} GROUP BY ?type ?typename ORDER BY DESC(?count)
+LIMIT 100
+}}
+
+=== Wikidata storytelling: Shelley's Guitar ===
+Optimised by [[User:TweetsFactsAndQueries]]
+
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q43380186 wd:Q93343 wd:Q43380245 wd:Q31561 wd:Q1302047 wd:Q47152 wd:Q86440 wd:Q692 wd:Q82133 wd:Q60643108 wd:Q56676227}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.
+?item1 ?prop ?item2.
+?edge wikibase:directClaim ?prop ; a wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+=== Wikidata storytelling: Wang Xianzhi and the Ashmolean ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q636400 wd:Q50813061 wd:Q50819534 wd:Q27147621 wd:Q559425 wd:Q15928529 wd:Q50819542 wd:Q16666 wd:Q10875944 wd:Q2047427}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.
+?item1 ?prop ?item2.
+?edge ?dummy ?prop ; rdf:type wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+=== Wikidata storytelling: the Shahnamah ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q8279 wd:Q43459 wd:Q82133 wd:Q8462 wd:Q53676578 wd:Q3147516 wd:Q553204 wd:Q20737645 wd:Q507564 wd:Q60809157 wd:Q1601879 wd:Q5943957 wd:Q1459037}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.
+?item1 ?prop ?item2.
+?edge ?dummy ?prop ; rdf:type wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+}}
+
+=== Wikidata storytelling: astrolabes ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q3172160 wd:Q56024100 wd:Q524289 wd:Q55867318 wd:Q524289 wd:Q6941088 wd:Q55867319 wd:Q15109492 wd:Q56867532 wd:Q1646305}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.?item1 ?prop ?item2.
+?edge ?dummy ?prop ; rdf:type wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
+}
+}}
+
+=== Wikidata storytelling: Cunningham's Law and Godwin's Law ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q154619 wd:Q2071976 wd:Q7637 wd:Q83 wd:Q171 wd:Q28778432 wd:Q180 wd:Q6686945}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.?item1 ?prop ?item2.
+?edge ?dummy ?prop ; rdf:type wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+}
+}}
+
+=== Wikidata storytelling: the Lanchester family ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q233009 wd:Q55264 wd:Q18527930 wd:Q61412 wd:Q9061 wd:Q1170115 wd:Q1453055 wd:Q5541515 wd:Q5729524 wd:Q1138080 wd:Q82133 wd:Q20081025 wd:Q860807}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.
+?item1 ?prop ?item2.
+?edge wikibase:directClaim ?prop ; a wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Wikidata storytelling: things called "Sandwich" ===
+{{SPARQL2|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?image2 ?item2Label ?edgeLabel
+WITH { SELECT ?item1 WHERE {
+VALUES ?item1 {wd:Q26163 wd:Q28803 wd:Q334953 wd:Q118223 wd:Q28045325 wd:Q28045325 wd:Q3305213 wd:Q678539 wd:Q5326366 wd:Q6249175}
+} } AS %item1
+WITH {SELECT (?item1 AS ?item2) WHERE {INCLUDE %item1} } AS %item2
+WHERE {
+  INCLUDE %item1.
+  INCLUDE %item2.
+?item1 ?prop ?item2.
+?edge wikibase:directClaim ?prop ; a wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+OPTIONAL {?item2 wdt:P18 ?image2}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }
+}
+}}
+
+=== Attempt at query-driven graph with unspecified properties ===
+{{SPARQL|query=#defaultView:Graph
+SELECT ?item1 ?image ?item1Label ?item2 ?edgeLabel WHERE {
+VALUES ?target {wd:Q47152}
+{?target ?prop1 ?item1} UNION {?item1 ?prop1 ?target} UNION {VALUES ?item1 {wd:Q47152} }. ?item1 wdt:P31 wd:Q5.
+{?target ?prop2 ?item2} UNION {?item2 ?prop2 ?target}. ?item2 wdt:P31 wd:Q5.
+?item1 ?prop ?item2.
+?edge ?dummy ?prop ; rdf:type wikibase:Property
+OPTIONAL {?item1 wdt:P18 ?image}
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+}}
+
+=== Academic disciplines ===
+{{SPARQL|query=SELECT DISTINCT ?a ?aLabel WHERE {
+?a wdt:P31/wdt:P279? wd:Q11862829.
+SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"}
+} ORDER BY ?aLabel
+}}
+
+
+[[Category:SPARQL]]

@@ -1,0 +1,9 @@
+Given a SPARQL query and some noisy context and description, generate 5 diverse instruction that can be entered by an average user to get the information relevant to the query.
+
+Here are the conditions:
+1. Try not to repeat the verb for each instruction to maximize diversity.
+2. The language used for the instruction also should be diverse. For example, you should combine questions with imperative instructions.
+3. The instructions and questions should be as simple as possible.
+4. The instructions should be relevant to the query.
+5. The instructions should be 1 to 2 sentences long. Either an imperative sentence or a question is permitted.
+6. Respond in JSON format with "instructions" field, ONLY !important

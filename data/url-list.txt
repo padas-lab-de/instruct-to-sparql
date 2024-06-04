@@ -1,0 +1,2 @@
+# https://www.wikidata.org/wiki/Category:SPARQL
+RunIt -https://www.wikidata.org/wiki/User:D1gggg/Wikidata_model_and_SPARQL

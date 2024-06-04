@@ -1,0 +1,3 @@
+rdflib
+tqdm_batch
+nltk
