@@ -1,21 +1,4 @@
-## SPARQL query execution, expansion and optimization agents
-
-The idea here is to implement a set of agents that can be used to execute, expand and optimize SPARQL queries. 
-The agents will later on be used in a Chain of Thought (CoT), Thought/Action Chain (TAC) or Thought/Action Chain with Feedback (TACF) to execute a query, expand it and optimize it.
-
-### Useful links:
-- https://owlready2.readthedocs.io/en/latest/sparql.html#open-a-sparql-endpoint
-- https://sparqlwrapper.readthedocs.io/en/latest/main.html#introduction
-- https://github.com/eea/sparql-client
-- https://www.wikidata.org/wiki/Wikidata:SPARQL_query_service/query_optimization
-- https://www.mediawiki.org/wiki/Wikibase/Indexing/RDF_Dump_Format#Prefixes_used
-- https://www.mediawiki.org/wiki/Wikidata_Query_Service/User_Manual
-- https://query.wikidata.org
-- https://www.wikidata.org/wiki/Wikidata:Database_reports/List_of_properties/all
-- https://github.com/jcklie/wikimapper#precomputed-indices
-
-
-### Potential syntax endpoint: http://sparql.org/query-validator.html
+## SPARQL Natural Language instruction/question Generation, Complexity Labeling.
 
 ### Prefixes for WIKIdata:
 ```sparql
