@@ -1,6 +1,6 @@
 # Instruct-to-SPARQL: GitHub Repository
 
-Welcome to the GitHub repository for the Instruct-to-SPARQL dataset! This repository contains the source code, data processing scripts, and examples for creating, fine-tuning, and evaluating models with the Instruct-to-SPARQL dataset.
+Welcome to the GitHub repository for the [Instruct-to-SPARQL](https://huggingface.co/datasets/PaDaS-Lab/Instruct-to-SPARQL) dataset! This repository contains the source code, data processing scripts, and examples for creating, fine-tuning, and evaluating models with the Instruct-to-SPARQL dataset.
 
 ## Table of Contents
 
