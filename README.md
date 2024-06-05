@@ -148,6 +148,9 @@ The performance of models on the Instruct-to-SPARQL dataset is evaluated using a
 
 ### Execution Results Metrics
 
+Before evaluating the generated SPARQL queries, we execute them to obtain the results. We then do a [semantic mapping](https://github.com/fireindark707/Python-Schema-Matching) where we match the keys of the results with the keys of the target results.
+The performance of models is evaluated based on the similarity between the results obtained from the target and generated queries.
+
 1. **[Overlap Coefficient](https://en.wikipedia.org/wiki/Overlap_coefficient)**
 
    The Overlap Coefficient measures the similarity between the sets of results returned by the target and generated SPARQL queries. It is defined as the size of the intersection divided by the size of the smaller set.
