@@ -126,24 +126,24 @@ The performance of models on the Instruct-to-SPARQL dataset is evaluated using a
    BLEU measures the similarity between the generated SPARQL query and a reference SPARQL query by calculating n-gram precision. It ranges from 0 to 1, where 1 indicates a perfect match.
 
    Formula:
-   ```math
-   \text{BLEU} = \exp \left( \min\left(0, 1 - \frac{\text{len(ref)}}{\text{len(gen)}}\right) + \sum_{n=1}^{N} w_n \log p_n \right)
-   ```
+   
+   $$\text{BLEU} = \exp \left( \min\left(0, 1 - \frac{\text{len(ref)}}{\text{len(gen)}}\right) + \sum_{n=1}^{N} w_n \log p_n \right)$$
+   
    where $p_n$ is the precision of n-grams, $w_n$ are weights, and $\text{len(ref)}$ and $\text{len(gen)}$ are the lengths of the reference and generated queries, respectively.
 
-2. **[ROUGE](https://aclanthology.org/W04-1013.pdf) (Recall-Oriented Understudy for Gisting Evaluation)**
+3. **[ROUGE](https://aclanthology.org/W04-1013.pdf) (Recall-Oriented Understudy for Gisting Evaluation)**
 
    ROUGE measures the overlap between the generated SPARQL query and the reference SPARQL query, focusing on recall. The most commonly used variants are ROUGE-N (n-gram recall) and ROUGE-L (longest common subsequence).
 
    ROUGE-N Formula:
-   ```math
-   \text{ROUGE-N} = \frac{\sum_{S \in \text{References}} \sum_{gram_n \in S} \text{Count}_{match}(gram_n)}{\sum_{S \in \text{References}} \sum_{gram_n \in S} \text{Count}(gram_n)}
-   ```
+
+   $$\text{ROUGE-N} = \frac{\sum_{S \in \text{References}} \sum_{gram_n \in S} \text{Count}_{match}(gram_n)}{\sum_{S \in \text{References}} \sum_{gram_n \in S} \text{Count}(gram_n)}$$
+
 
    ROUGE-L Formula:
-   ```math
-   \text{ROUGE-L} = \frac{LCS(X,Y)}{\text{len}(Y)}
-   ```
+
+   $$\text{ROUGE-L} = \frac{LCS(X,Y)}{\text{len}(Y)}$$
+
    where $LCS(X, Y)$ is the length of the longest common subsequence between the reference $X$ and the generated query $Y$.
 
 ### Execution Results Metrics
@@ -156,19 +156,19 @@ The performance of models is evaluated based on the similarity between the resul
    The Overlap Coefficient measures the similarity between the sets of results returned by the target and generated SPARQL queries. It is defined as the size of the intersection divided by the size of the smaller set.
 
    Formula:
-   ```math
-   \text{Overlap Coefficient} = \frac{|A \cap B|}{\min(|A|, |B|)}
-   ```
+
+   $$\text{Overlap Coefficient} = \frac{|A \cap B|}{\min(|A|, |B|)}$$
+   
    where $A$ and $B$ are the sets of results from the target and generated queries, respectively.
 
-2. **[Jaccard Similarity](https://en.wikipedia.org/wiki/Jaccard_index)**
+3. **[Jaccard Similarity](https://en.wikipedia.org/wiki/Jaccard_index)**
 
    The Jaccard Similarity measures the similarity between the sets of results returned by the target and generated SPARQL queries. It is defined as the size of the intersection divided by the size of the union.
 
    Formula:
-   ```math
-   \text{Jaccard Similarity} = \frac{|A \cap B|}{|A \cup B|}
-   ```
+
+   $$\text{Jaccard Similarity} = \frac{|A \cap B|}{|A \cup B|}$$
+
    where $A$ and $B$ are the sets of results from the target and generated queries, respectively.
 
 ## Citation
