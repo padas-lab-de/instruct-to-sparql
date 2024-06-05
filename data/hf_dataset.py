@@ -40,7 +40,7 @@ def create_hf_dataset(dataset_path, local_name="final_fq18_without_limit", hub_n
     features = datasets.Features(
         {
             "id": datasets.Value("int16"),
-            "instructions": datasets.Sequence(datasets.Value("string")),
+            "nl_generation": datasets.Sequence(datasets.Value("string")),
             "sparql_raw": datasets.Value("string"),
             "sparql_annotated": datasets.Value("string"),
             "sparql_query": datasets.Value("string"),
@@ -50,7 +50,7 @@ def create_hf_dataset(dataset_path, local_name="final_fq18_without_limit", hub_n
         }
     )
     description = datasets.DatasetInfo(
-        description=f"""Text-to-SPARQL Dataset which consists of pairs of Natural language instructions and SPARQL queries.\
+        description=f"""Text-to-SPARQL Dataset which consists of pairs of Natural language nl_generation and SPARQL queries.\
                     The dataset is created by crawling the Wikipedia pages for tutorials and examples. The dataset has a total of 2.8k examples.\
                     The dataset is split into train, validation and test sets.""",
         features=features,

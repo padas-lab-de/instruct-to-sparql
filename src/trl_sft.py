@@ -57,7 +57,7 @@ class ScriptArguments:
     dataset_text_field: Optional[str] = field(default="text", metadata={"help": "the text field of the dataset"})
     use_fast: Optional[bool] = field(default=False, metadata={"help": "whether to use fast tokenizer or not."})
     annotated_gen: Optional[bool] = field(default=False, metadata={"help": "whether the generation is annotated"})
-    num_instructions: Optional[int] = field(default=1, metadata={"help": "the number of instructions to sample"})
+    num_instructions: Optional[int] = field(default=1, metadata={"help": "the number of nl_generation to sample"})
     prompt_style: Optional[str] = field(default="chatml", metadata={"help": "The prompt style to use"})
     force_padding_side: Optional[bool] = field(default=False, metadata={"help": "The padding side to use"})
     add_generation_prompt: Optional[bool] = field(default=False,
@@ -196,7 +196,7 @@ if __name__ == "__main__":
                                       f"{model_name}-sft-{script_args.lr_scheduler_type}-{script_args.prompt_style}-annotated-{annotated}"))
     with accelerator.main_process_first():
         dataset = load_data(dataset_name, subset=subset)
-    # flatten the list of instructions field by creating new row for each instruction
+    # flatten the list of nl_generation field by creating new row for each instruction
     n_sample_instructions = script_args.num_instructions
     os.environ["WANDB_PROJECT"] = script_args.project_name
 
@@ -207,11 +207,11 @@ if __name__ == "__main__":
         if script_args.debugging:
             limit = 5
         for i in range(len(examples["id"][:limit])):
-            # sample a random instruction out of the list of instructions
-            instructions = examples["instructions"][i]
+            # sample a random instruction out of the list of nl_generation
+            instructions = examples["nl_generation"][i]
             instructions = random.choices(instructions, k=n_sample_instructions)
             new_examples["id"].extend([examples["id"][i]] * n_sample_instructions)
-            new_examples["instructions"].extend(instructions)
+            new_examples["nl_generation"].extend(instructions)
             new_examples["sparql_query"].extend([examples["sparql_query"][i]] * n_sample_instructions)
             new_examples["sparql_annotated"].extend([examples["sparql_annotated"][i]] * n_sample_instructions)
             new_examples["sparql_raw"].extend([examples["sparql_raw"][i]] * n_sample_instructions)

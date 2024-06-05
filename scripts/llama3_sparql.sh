@@ -36,7 +36,7 @@ while [ $# -gt 0 ]; do
   --use_peft)
     USE_PEFT=true
     ;;
-  --padding_side)
+  --left_padding_side)
     PADDING_SIDE=true
     ;;
   *)
@@ -49,7 +49,7 @@ done
 
 # Hyperparameters
 MODEL_NAME="meta-llama/Meta-Llama-3-8B-Instruct"
-DATASET_PATH="PaDaS-Lab/text_to_sparql_dataset"
+DATASET_PATH="PaDaS-Lab/Instruct-to-SPARQL"
 SUBSET=("default" "with_limit")  # "default", "with_limit"
 PROMPT_STYLE="chatml"           # "prompts"
 SEED=42

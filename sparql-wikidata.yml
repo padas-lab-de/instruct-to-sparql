@@ -1,4 +1,4 @@
-name: sparql-wikidata
+name: instruct-to-sparql
 channels:
   - defaults
 dependencies:

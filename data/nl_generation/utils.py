@@ -2,8 +2,8 @@ import copy
 import dataclasses
 import io
 import json
-# Todo: 1. Generate X re-formulated instructions for each query context + description using GPT3.5 and OpenAssistant.
-# Todo: 2. Prepare the instructions for the LLMs with different templates.
+# Todo: 1. Generate X re-formulated nl_generation for each query context + description using GPT3.5 and OpenAssistant.
+# Todo: 2. Prepare the nl_generation for the LLMs with different templates.
 import logging
 import os
 import time

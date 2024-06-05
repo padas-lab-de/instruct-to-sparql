@@ -19,11 +19,11 @@ def flatten_instructions_for_eval(examples):
     k = 1
     new_examples = {k: [] for k in examples.keys()}
     for i in range(len(examples["id"])):
-        # sample a random instruction out of the list of instructions
-        instructions = examples["instructions"][i]
+        # sample a random instruction out of the list of nl_generation
+        instructions = examples["nl_generation"][i]
         instructions = instructions[:k]
         new_examples["id"].extend([examples["id"][i]] * k)
-        new_examples["instructions"].extend(instructions)
+        new_examples["nl_generation"].extend(instructions)
         new_examples["sparql_query"].extend([examples["sparql_query"][i]] * k)
         new_examples["sparql_annotated"].extend([examples["sparql_annotated"][i]] * k)
         new_examples["sparql_raw"].extend([examples["sparql_raw"][i]] * k)
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         few_shot_examples = dataset["train"].filter(lambda x: len(x[target_key].split(" ")) < 150).select(range(num_shots))
         few_shots = f"Examples:\n"
         for i in range(len(few_shot_examples[target_key])):
-            few_shots += f"- User: {few_shot_examples['instructions'][i][0]}\nAnswer: Here is the SPARQL query: \n{start_tag}\n{few_shot_examples[target_key][i]}\n{end_tag}\n"
+            few_shots += f"- User: {few_shot_examples['nl_generation'][i][0]}\nAnswer: Here is the SPARQL query: \n{start_tag}\n{few_shot_examples[target_key][i]}\n{end_tag}\n"
 
         gen_kwargs = {"max_tokens": script_args.max_new_tokens, "temperature": script_args.temperature,
                       "top_p": script_args.top_p, "n": script_args.num_return_sequences}

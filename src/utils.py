@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 from transformers import logging, pipeline, AutoModelForCausalLM, AutoTokenizer
 load_dotenv()
-from data.instructions.utils import OpenAIDecodingArguments, openai_completion
+from data.nl_generation.utils import OpenAIDecodingArguments, openai_completion
 
 if is_deepspeed_available():
     pass

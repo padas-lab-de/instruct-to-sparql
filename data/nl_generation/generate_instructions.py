@@ -1,16 +1,16 @@
 # LLMs Intructions generation based on Sparql queries
-# Todo: 1. Generate X re-formulated instructions for each query context + description using GPT3.5 and OpenAssistant.
-# Todo: 2. Prepare the instructions for the LLMs with different templates.
+# Todo: 1. Generate X re-formulated nl_generation for each query context + description using GPT3.5 and OpenAssistant.
+# Todo: 2. Prepare the nl_generation for the LLMs with different templates.
 import json
 import os
 import time
 import tqdm
 
-from data.instructions import utils
+from data.nl_generation import utils
 
 
 def encode_prompt(query_dict, with_context=True):
-    """Encode multiple prompt instructions into a list of strings."""
+    """Encode multiple prompt nl_generation into a list of strings."""
     template = open("prompt.txt").read() + "\n"
     messages = [{"role": "system", "content": template}]
     (context, description, query, _id) = query_dict["context"], query_dict["description"], query_dict["query"], \
@@ -38,11 +38,11 @@ def estimate_tokens_cost(count, model="gpt-3.5-turbo"):
 
 
 def post_process_llama3_response(response):
-    """validate that the response is a json and evaluate the json response from GPT3 and return the processed instructions."""
+    """validate that the response is a json and evaluate the json response from GPT3 and return the processed nl_generation."""
     try:
         response = json.loads(response)
-        if "instructions" in response:
-            return response["instructions"], True
+        if "nl_generation" in response:
+            return response["nl_generation"], True
         else:
             return response, False
     except json.decoder.JSONDecodeError:
@@ -58,11 +58,11 @@ def generate_instruction(output_dir="../processed/",
                          top_p=1.0,
                          max_tokens=8192,
                          estimate=False):
-    """This function is to generate the instructions for the LLMs based on the query, context, description and template."""
+    """This function is to generate the nl_generation for the LLMs based on the query, context, description and template."""
     # Load the seed queries
     sparql_queries = json.load(open(seed_queries_path, "r"))
 
-    # Generate the instructions
+    # Generate the nl_generation
     seed_queries = [
         {"context": sparql_queries["context"][str(i)], "description": sparql_queries["description"][str(i)],
          "query": sparql_queries["query_templated"][str(i)], "id": str(i)}
@@ -73,17 +73,17 @@ def generate_instruction(output_dir="../processed/",
     os.makedirs(output_dir, exist_ok=True)
     request_idx = 0
 
-    # now let's generate new instructions for every query!
+    # now let's generate new nl_generation for every query!
     generated_instructions = []
     extended_seed_queries = sparql_queries
     extension_dict = dict()
     if os.path.exists(os.path.join(output_dir, "sparql_instructions.json")):
         generated_instructions = utils.jload(os.path.join(output_dir, "sparql_instructions.json"))
-        print(f"Loaded {len(generated_instructions)} LLM-processed instructions")
+        print(f"Loaded {len(generated_instructions)} LLM-processed nl_generation")
     if os.path.exists(os.path.join(output_dir, seed_queries_path.split("/")[-1])):
         extended_seed_queries = utils.jload(os.path.join(output_dir, seed_queries_path.split("/")[-1]))
-        extension_dict = extended_seed_queries.get("instructions", dict())
-        print(f"Loaded {len(generated_instructions)} LLM-processed instructions")
+        extension_dict = extended_seed_queries.get("nl_generation", dict())
+        print(f"Loaded {len(generated_instructions)} LLM-processed nl_generation")
     progress_bar = tqdm.tqdm(total=len(seed_queries))
     invalid_responses = []
     if generated_instructions:
@@ -95,7 +95,7 @@ def generate_instruction(output_dir="../processed/",
         # estimating total cost
         token_counts = []
         for query_dict in seed_queries:
-            # generate instructions for a single query
+            # generate nl_generation for a single query
             messages = encode_prompt(query_dict)
             token_counts.append(utils.num_tokens_from_messages(messages, model=model_name))
         print(
@@ -110,7 +110,7 @@ def generate_instruction(output_dir="../processed/",
                 request_idx += 1
                 if idx < len(generated_instructions) and idx not in invalid_responses:
                     continue
-                # generate instructions for a single query
+                # generate nl_generation for a single query
                 if idx in invalid_responses:
                     print(f"Re-generating instruction for query {idx} with no context")
                     messages = encode_prompt(query_dict, with_context=True)
@@ -139,7 +139,7 @@ def generate_instruction(output_dir="../processed/",
                 # total_cost = estimate_tokens_cost(total_tokens, model=model_name)
                 # print(f"Total tokens: {total_tokens}, Accumulated cost: {total_cost} $")
                 instructions, valid = post_process_llama3_response(response.message.content)
-                gen_dict = {"id": query_dict["id"], "instructions": instructions, "valid_gpt_response": valid,
+                gen_dict = {"id": query_dict["id"], "nl_generation": instructions, "valid_gpt_response": valid,
                             "query": query_dict["query"]}
                 if idx in invalid_responses:
                     generated_instructions[idx] = gen_dict
@@ -149,17 +149,17 @@ def generate_instruction(output_dir="../processed/",
                 progress_bar.update(1)
 
                 utils.jdump(generated_instructions, os.path.join(output_dir, "sparql_instructions.json"))
-                extended_seed_queries["instructions"] = extension_dict
+                extended_seed_queries["nl_generation"] = extension_dict
                 utils.jdump(extended_seed_queries, os.path.join(output_dir, seed_queries_path.split("/")[-1]))
                 if total_cost >= 20:
                     print(f"Total tokens: {total_tokens}, Accumulated cost: {total_cost} $")
-                    print(f"Saved {len(generated_instructions)} processed instructions")
+                    print(f"Saved {len(generated_instructions)} processed nl_generation")
                     raise Exception("Cost limit reached")
         except Exception or KeyboardInterrupt as e:
             print(f"Error: {e}")
             utils.jdump(generated_instructions, os.path.join(output_dir, "sparql_instructions.json"))
             utils.jdump(extended_seed_queries, os.path.join(output_dir, seed_queries_path.split("/")[-1]))
-            print(f"Saved {len(generated_instructions)} processed instructions")
+            print(f"Saved {len(generated_instructions)} processed nl_generation")
             print(f"Total tokens: {total_tokens}, Accumulated cost: {total_cost} $")
             raise e
 

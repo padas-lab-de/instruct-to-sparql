@@ -4,7 +4,7 @@ import time
 
 import tqdm
 
-from data.instructions import utils
+from data.nl_generation import utils
 
 
 system_prompt = """You are a helpful assistant. Your task is to analyse the given SPARQL query and classify the complexity 
@@ -14,7 +14,7 @@ Here are the conditions:
 2. Respond in JSON format with 'complexity_description' and 'complexity' fields, ONLY !important"""
 
 def encode_prompt(query_dict, with_context=True):
-    """Encode multiple prompt instructions into a list of strings."""
+    """Encode multiple prompt nl_generation into a list of strings."""
     sys_prompt = system_prompt + "\n"
     messages = [{"role": "system", "content": sys_prompt}]
     query = query_dict["query"]
@@ -25,7 +25,7 @@ def encode_prompt(query_dict, with_context=True):
 
 
 def post_process_llama3_response(response):
-    """validate that the response is a json and evaluate the json response from Llama3 and return the processed instructions."""
+    """validate that the response is a json and evaluate the json response from Llama3 and return the processed nl_generation."""
     try:
         response = json.loads(response)
         if "complexity" in response and "complexity_description" in response:
@@ -43,11 +43,11 @@ def generate_sparql_classification(output_dir="../processed/",
                                    temperature=0.0,
                                    top_p=1.0,
                                    max_tokens=8192):
-    """This function is to generate the instructions for the LLMs based on the query, context, description and template."""
+    """This function is to generate the nl_generation for the LLMs based on the query, context, description and template."""
     # Load the seed queries
     sparql_queries = json.load(open(seed_queries_path, "r"))
 
-    # Generate the instructions
+    # Generate the nl_generation
     seed_queries = [
         {"query": sparql_queries["query"][str(i)], "id": str(i)}
         for i in range(len(sparql_queries['query'].keys()))
@@ -57,11 +57,11 @@ def generate_sparql_classification(output_dir="../processed/",
     os.makedirs(output_dir, exist_ok=True)
     request_idx = 0
 
-    # now let's generate new instructions for every query!
+    # now let's generate new nl_generation for every query!
     generated_complexities = []
     if os.path.exists(os.path.join(output_dir, "sparql_complexities.json")):
         generated_complexities = utils.jload(os.path.join(output_dir, "sparql_complexities.json"))
-        print(f"Loaded {len(generated_complexities)} LLM-processed instructions")
+        print(f"Loaded {len(generated_complexities)} LLM-processed nl_generation")
     progress_bar = tqdm.tqdm(total=len(seed_queries))
     invalid_responses = []
     if generated_complexities:

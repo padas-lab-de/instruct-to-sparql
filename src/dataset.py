@@ -28,7 +28,7 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
             output_texts = []
             label_texts = []
             for i in range(len(example[output_key])):
-                text = f"{system_prompt}\n\n### Question: {example['instructions'][i]}\n"
+                text = f"{system_prompt}\n\n### Question: {example['nl_generation'][i]}\n"
                 assistant_message = answer_template.format(query=example[output_key][i], start_tag=start_tag,
                                                            end_tag=end_tag)
                 if split == "train":
@@ -62,7 +62,7 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
                     },
                     {
                         "role": "user",
-                        "content": example['instructions'][i]
+                        "content": example['nl_generation'][i]
                     }
                 ]
                 if split == "train":
@@ -81,7 +81,7 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
                 except TemplateError as e:
                     if "user/assistant/user/assistant/" in str(
                             e) or "Only user and assistant roles are supported" in str(e):
-                        user_message = system_prompt + "\n\n" + example['instructions'][i]
+                        user_message = system_prompt + "\n\n" + example['nl_generation'][i]
                         chat = [
                             {
                                 "role": "user",
@@ -135,7 +135,7 @@ def get_formatting_eval_func(annotated=False,
             },
             {
                 "role": "user",
-                "content": example['instructions']
+                "content": example['nl_generation']
             }
         ]
         example["messages"] = chat
