@@ -7,7 +7,10 @@ from cleantext import clean
 from qwikidata.linked_data_interface import get_entity_dict_from_api
 from rdflib.plugins.sparql.parser import parseQuery
 
-from constants import wiki_prefixes, schema_dict
+from constants import wiki_prefixes, schema_dict, PREFIX_TO_URL
+
+from wikidata import WikidataAPI
+import pandas as pd
 
 wikidata = site = pywikibot.Site("wikidata", "wikidata")
 
@@ -203,6 +206,89 @@ def clean_comments():
     with open("processed/sparql_instruct_v1.json", "w") as f:
         json.dump(queries, f, indent=2)
 
+def remove_styling_markup_and_urls():
+    with open("raw/cleaned_queries.json", "r") as f:
+        queries = json.load(f)
+    
+    # x is str
+    remove_markup = lambda x: re.sub("<\/?[a-zA-z?;=\"' ]*>|<.+[\W]>", ' ', x, flags=0)
+    remove_css = lambda x: re.sub("(?:class|colspan|style|rowspan)=\".+\"", " ", x, flags=0)
+    remove_url = lambda x: re.sub("https:[a-zA-Z%:./#_0-9]+", " ", x, flags=0)
+    post_remove = lambda x: x.strip().replace("\n\n", "\n")
+    
+    apply_preprocess = lambda x: {
+        "query": x["query"],
+        "metadata": {
+            "description": post_remove(remove_url(x["metadata"]["description"])),
+            "context": post_remove(remove_markup(remove_css(x["metadata"]["context"]))),
+        }
+    }
+    
+    new_queries = [apply_preprocess(x) for x in queries]
+    
+    with open("processed/cleaner_queries.json", "w") as f:
+        json.dump(new_queries, f, indent=2)
+
+def annotate_queries():
+    def extract_entities_properties_ids(query:str):
+        pattern = re.compile(r":(Q\d+|P\d+|L\d+)")
+        results = pattern.findall(query)
+
+        if results:
+            return results
+        else:
+            return []
+
+    def replace_entities_and_properties_id_with_labels(query: str):
+        extracted_properties_and_entities = set(extract_entities_properties_ids(query))
+        
+        api = WikidataAPI()
+        
+        entities_id_w_labels = [api._smart_get_labels_from_entity_id(entity_id)[0] for entity_id in filter(lambda x: x.startswith("Q"), extracted_properties_and_entities)]
+        properties_id_w_labels = [api._smart_get_labels_from_entity_id(property_id)[0] for property_id in filter(lambda x: x.startswith("P"), extracted_properties_and_entities)]
+        lexemes_id_w_labels = [api._smart_get_labels_from_entity_id(property_id)[0] for property_id in filter(lambda x: x.startswith("L"), extracted_properties_and_entities)]
+        
+        new_query = query
+        for e, label in entities_id_w_labels:
+            new_query = re.sub(f":{e}", f":[entity:{label}]", new_query)
+        for p, label in properties_id_w_labels:
+            new_query = re.sub(f":{p}", f":[property:{label}]", new_query)
+        for l, label in lexemes_id_w_labels:
+            new_query = re.sub(f":{l}", f":[lexeme:{label}]", new_query)
+        
+        return new_query
+    
+    def add_relevant_prefixes_to_query(query: str) -> str:
+        prefixes = ""
+        copy_query = query
+        for k in PREFIX_TO_URL.keys():
+            current_prefix = f"PREFIX {k}: <{PREFIX_TO_URL[k]}>"
+            
+            # Some queries already have some prefixes, duplicating them will cause an error
+            # So first we check that the prefix we want to add is not already included.
+            if not re.search(current_prefix, copy_query): 
+                
+                # Then we look for the prefix in the query
+                if re.search(rf"\W({k}):", copy_query):
+                    prefixes += current_prefix + "\n"
+            
+            # For safety, we remove all the constants that starts with the prefix
+            while re.search(rf"\W({k}):", copy_query):
+                copy_query = re.sub(rf"\W({k}):", " ", copy_query)
+        
+        if prefixes != "":
+            prefixes += "\n"
+        
+        return prefixes + query
+    
+    # TODO: change to fq18
+    queries = pd.read_json("processed/final_fq17.json")
+    
+    # This can take several hours.
+    queries["query_templated"] = queries.apply(lambda x: replace_entities_and_properties_id_with_labels(add_relevant_prefixes_to_query(x["query"])), axis=1)
+    
+    queries.to_json("processed/final_fq17-annotated_new.json")
+    
 
 if __name__ == '__main__':
     # clean_queries()
