@@ -23,11 +23,11 @@ Instruct-to-SPARQL is a dataset that consists of pairs of Natural language instr
 The dataset has the following features:
 
 - **id**: A unique identifier for each example.
-- **instructions**: A sequence of natural language instructions.
-- **sparql_raw**: The raw SPARQL query as found in the source.
-- **sparql_annotated**: The SPARQL query with annotations.
-- **sparql_query**: The final SPARQL query used to retrieve data.
-- **complexity**: A measure of the query's complexity.
+- **instructions**: A list of natural language instructions and questions.
+- **sparql_raw**: The SPARQL query that was crawled and cleaned.
+- **sparql_annotated**: The SPARQL query with annotations and Prefixes.
+- **sparql_query**: The final SPARQL with Prefixes query used to retrieve data.
+- **complexity**: A measure of the query's complexity: simple, medium, or complex.
 - **complexity_description**: A description of the query's complexity.
 - **query_results**: The results obtained from executing the SPARQL query.
 
