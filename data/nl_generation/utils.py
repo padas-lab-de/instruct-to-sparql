@@ -17,7 +17,10 @@ from tenacity import (
     wait_random_exponential,
 )  # for exponential backoff
 
-client = openai.OpenAI(api_key=os.getenv("INFERENCE_API_KEY"), base_url=os.getenv("INFERENCE_API_URL"))
+try:
+    client = openai.OpenAI(api_key=os.getenv("INFERENCE_API_KEY"), base_url=os.getenv("INFERENCE_API_URL"))
+except openai.OpenAIError as e:
+    logging.warning(f"Client not initialized: {e}. You can ignore this if you are not running the code in the inference API.")
 
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(10))

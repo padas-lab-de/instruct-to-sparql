@@ -1,69 +1,14 @@
-import os
+import logging
 
 import evaluate
 import numpy as np
-import pandas as pd
-import xgboost as xgb
-from schema_matching.cal_column_similarity import create_similarity_matrix, this_directory, make_data_from
-from schema_matching.train import test
-from schema_matching.utils import table_column_filter, find_all_keys_values
 from sklearn.metrics import f1_score
+from codebleu import calc_codebleu
+from rdflib.plugins.sparql.parser import parseQuery
+from column_matching import make_df_from_json, schema_matching
 
 rouge = evaluate.load('rouge')
 bleu = evaluate.load('bleu')
-
-def make_df_from_json(data):
-    """
-    Adpated from source: https://github.com/fireindark707/Python-Schema-Matching
-    Make csv file from json file.
-    """
-    # find key_values
-    if isinstance(data, dict):
-        key_values = find_all_keys_values(data, "")
-    elif isinstance(data, list):
-        key_values = find_all_keys_values({"TOPLEVEL": data}, "TOPLEVEL")
-    else:
-        raise ValueError('Your input JsonData is not a dictionary or list')
-
-    key_values = {k.replace("TOPLEVEL.", ""): v for k, v in key_values.items() if len(v) > 1}
-
-    df = pd.DataFrame({k: pd.Series(v) for k, v in key_values.items()})
-    return df
-
-
-def schema_matching(table1_df, table2_df, threshold=None, strategy="one-to-one", model_pth=None):
-    """
-    Adpated from source: https://github.com/fireindark707/Python-Schema-Matching
-    Do Columns matching!
-    """
-    if model_pth is None:
-        model_pth = str(this_directory / "model" / "2022-04-12-12-06-32")
-    # filter columns
-    table1_df = table_column_filter(table1_df)
-    table2_df = table_column_filter(table2_df)
-
-    # extract features
-    features, _ = make_data_from(table1_df, table2_df, type="test")
-
-    # load model and predict on features
-    preds = []
-    pred_labels_list = []
-    for i in range(len(os.listdir(model_pth)) // 2):
-        bst = xgb.Booster({'nthread': 4})  # init model
-        bst.load_model(model_pth + "/" + str(i) + ".model")
-        if threshold is not None:
-            best_threshold = float(threshold)
-        else:
-            with open(model_pth + "/" + str(i) + ".threshold", 'r') as f:
-                best_threshold = float(f.read())
-        pred, pred_labels = test(bst, best_threshold, features, test_labels=np.ones(len(features)), type="inference")
-        preds.append(pred)
-        pred_labels_list.append(pred_labels)
-        del bst
-
-    df_pred, df_pred_labels, predicted_pairs = create_similarity_matrix(table1_df, table2_df, preds, pred_labels_list,
-                                                                        strategy=strategy)
-    return df_pred, df_pred_labels, predicted_pairs
 
 
 def overlap(X, Y):
@@ -94,6 +39,30 @@ def bleu_score(references, generated_texts):
     return scores
 
 
+def codebleu_score(references, generated_texts):
+    """ Compute the CodeBLEU score between a list of references and a list of processed texts """
+    scores = []
+    for reference, generated_text in zip(references, generated_texts):
+        if len(generated_text) == 0:
+            scores.append(0)
+            continue
+        try:
+            parsed_ref = str(parseQuery(reference))
+            parsed_gen = str(parseQuery(generated_text))
+            results = calc_codebleu([[parsed_ref]], [parsed_gen], lang="python", weights=(0.25, 0.25, 0.25, 0.25),
+                                    tokenizer=None)
+            scores.append(results["codebleu"])
+        except Exception as e:
+            logging.warning(
+                "WARNING: Parsing the query failed and codebleu reverts to python ast parsing. Please consider ignoring this score. Error: %s",
+                e)
+            results = calc_codebleu([[reference]], [generated_text], lang="python", weights=(0.25, 0.25, 0.25, 0.25),
+                                    tokenizer=None)
+            scores.append(results["codebleu"])
+
+    return scores
+
+
 def rouge_score(references, generated_texts):
     """ Compute the ROUGE score between a list of references and a list of processed texts """
     return rouge.compute(predictions=generated_texts, references=references, use_aggregator=False)
@@ -110,7 +79,7 @@ def qa_metrics(labels, preds):
 def execution_metrics(results, target_results):
     """ Compute the execution metrics between the results and the target results """
     if not results:
-        return 0.0 , 0.0 , 0.0
+        return 0.0, 0.0, 0.0
     else:
         results = make_df_from_json(results)
         target_results = make_df_from_json(target_results)
@@ -133,11 +102,10 @@ def execution_metrics(results, target_results):
         dice_score = np.mean(dice_scores)
         return overlap_score, jaccard_score, dice_score
 
-if __name__=="__main__":
-    import time
 
-    import pandas as pd
-    from src.dataset import load_data
+if __name__ == "__main__":
+    import time
+    from src.data.dataset import load_data
     from data.wikidata import WikidataAPI
 
     wikidata = WikidataAPI()

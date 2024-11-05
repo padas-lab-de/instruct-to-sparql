@@ -59,7 +59,7 @@ To use this repository, you need to clone it and set up the required environment
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your_username/instruct-to-sparql.git
+git clone https://github.com/padas-lab-de/instruct-to-sparql.git
 cd instruct-to-sparql
 ```
 
@@ -68,7 +68,7 @@ cd instruct-to-sparql
 We recommend using a Conda environment. You can create the environment with the required dependencies using the `env.yml` file:
 
 ```bash
-conda env create -f sparql-wikidata.yml
+conda env create -f env.yml
 conda activate instruct-to-sparql
 ```
 
@@ -96,80 +96,44 @@ The repository includes code for fine-tuning models on the Instruct-to-SPARQL da
 
 ### Fine-tuning
 
-The `scripts/` directory contains scripts for fine-tuning and evaluating models. For examplae, to fine-tune the following models, run:
+The `scripts/finetune.sh` script supports fine-tuning various models. Here are some example commands:
 
-* For the model [Llama3-8B-SPARQL-annotated](https://huggingface.co/PaDaS-Lab/Llama3-8B-SPARQL-annotated)
-    ```bash
-    ./scripts/llama3_sparql.sh --annotated --batch_size=2 --accelerate="deepspeed-fp16" --left_padding_side
-    
-    ```
-* For the model [Mistral-7B-v0.3-SPARQL](https://huggingface.co/PaDaS-Lab/Mistral-7B-v0.3-SPARQL)
-    ```bash
-    ./scripts/mistral_sparql.sh --batch_size=2 --accelerate="deepspeed-bf16" --left_padding_side
-    ```
+```bash
+# Basic usage with default parameters
+./scripts/finetune.sh --model_name="mistralai/Mistral-7B-Instruct-v0.3"
+
+# Fine-tune Llama3 with annotated SPARQL
+./scripts/finetune.sh \
+    --model_name="meta-llama/Meta-Llama-3-8B-Instruct" \
+    --annotated \
+    --batch_size=2 \
+    --accelerate="deepspeed-fp16" \
+    --left_padding_side
+
+# Fine-tune Mistral with custom parameters
+./scripts/finetune.sh \
+    --model_name="mistralai/Mistral-7B-Instruct-v0.3" \
+    --batch_size=2 \
+    --accelerate="deepspeed-bf16" \
+    --left_padding_side
+```
+
+Available parameters:
+- `--model_name`: The name/path of the model to fine-tune (default: "meta-llama/Meta-Llama-3-8B-Instruct")
+- `--annotated`: Use annotated SPARQL queries for training
+- `--batch_size`: Training batch size (default: 2)
+- `--accelerate`: Acceleration strategy (options: "deepspeed-fp16", "deepspeed-bf16")
+- `--use_peft`: Enable PEFT/LoRA training
+- `--left_padding_side`: Use left padding instead of right padding
+
 ### Evaluation
 
 The script `scripts/evaluate.sh` is used for evaluating model performance. To evaluate a model checkpoint, run:
 
 ```bash
-./scripts/evaluate.sh --model_name MODEL_NAME --batch_size BATCH_SIZE --annotated
+./scripts/evaluate.sh --model_name MODEL_NAME --batch_size BATCH_SIZE --annotated --shots NUM_SHOTS
 ```
 
-## Metrics
-
-The performance of models on the Instruct-to-SPARQL dataset is evaluated using a combination of machine translation metrics and execution result metrics.
-
-### Machine Translation Metrics
-
-1. **[BLEU](https://aclanthology.org/P02-1040.pdf) (Bilingual Evaluation Understudy)**
-
-   BLEU measures the similarity between the generated SPARQL query and a reference SPARQL query by calculating n-gram precision. It ranges from 0 to 1, where 1 indicates a perfect match.
-
-   Formula:
-   
-   $$\text{BLEU} = \exp \left( \min\left(0, 1 - \frac{\text{len(ref)}}{\text{len(gen)}}\right) + \sum_{n=1}^{N} w_n \log p_n \right)$$
-   
-   where $p_n$ is the precision of n-grams, $w_n$ are weights, and $\text{len(ref)}$ and $\text{len(gen)}$ are the lengths of the reference and generated queries, respectively.
-
-3. **[ROUGE](https://aclanthology.org/W04-1013.pdf) (Recall-Oriented Understudy for Gisting Evaluation)**
-
-   ROUGE measures the overlap between the generated SPARQL query and the reference SPARQL query, focusing on recall. The most commonly used variants are ROUGE-N (n-gram recall) and ROUGE-L (longest common subsequence).
-
-   ROUGE-N Formula:
-
-   $$\text{ROUGE-N} = \frac{\sum_{S \in \text{References}} \sum_{gram_n \in S} \text{Count}_{match}(gram_n)}{\sum_{S \in \text{References}} \sum_{gram_n \in S} \text{Count}(gram_n)}$$
-
-
-   ROUGE-L Formula:
-
-   $$\text{ROUGE-L} = \frac{LCS(X,Y)}{\text{len}(Y)}$$
-
-   where $LCS(X, Y)$ is the length of the longest common subsequence between the reference $X$ and the generated query $Y$.
-
-### Execution Results Metrics
-
-Before evaluating the generated SPARQL queries, we execute them to obtain the results. We then do a [semantic mapping](https://github.com/fireindark707/Python-Schema-Matching) where we match the keys of the results with the keys of the target results.
-The performance of models is evaluated based on the similarity between the results obtained from the target and generated queries.
-
-1. **[Overlap Coefficient](https://en.wikipedia.org/wiki/Overlap_coefficient)**
-
-   The Overlap Coefficient measures the similarity between the sets of results returned by the target and generated SPARQL queries. It is defined as the size of the intersection divided by the size of the smaller set.
-
-   Formula:
-
-   $$\text{Overlap Coefficient} = \frac{|A \cap B|}{\min(|A|, |B|)}$$
-   
-   where $A$ and $B$ are the sets of results from the target and generated queries, respectively.
-
-3. **[Jaccard Similarity](https://en.wikipedia.org/wiki/Jaccard_index)**
-
-   The Jaccard Similarity measures the similarity between the sets of results returned by the target and generated SPARQL queries. It is defined as the size of the intersection divided by the size of the union.
-
-   Formula:
-
-   $$\text{Jaccard Similarity} = \frac{|A \cap B|}{|A \cup B|}$$
-
-   where $A$ and $B$ are the sets of results from the target and generated queries, respectively.
 
 ## Citation
 
@@ -177,7 +141,7 @@ If you use this dataset or code in your research, please cite it as follows:
 
 ```
 @dataset{instruct_to_sparql,
-  author = {Mehdi Ben Amor, Alexis Strappazon, Michael Granitzer, Jelena Mitrovic},
+  author = {Mehdi Ben Amor, Alexis Strappazon, Michael Granitzer, Előd Egyed-Zsigmond, Jelena Mitrovic},
   title = {Instruct-to-SPARQL},
   year = {2024},
   howpublished = {https://huggingface.co/datasets/PaDaS-Lab/Instruct-to-SPARQL},

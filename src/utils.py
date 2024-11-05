@@ -1,3 +1,5 @@
+import io
+import json
 import os
 from numbers import Number
 from typing import TYPE_CHECKING, List
@@ -7,7 +9,7 @@ import torch
 from accelerate.utils import is_deepspeed_available
 from dotenv import load_dotenv
 from tqdm import tqdm
-from transformers import logging, pipeline, AutoModelForCausalLM, AutoTokenizer
+from transformers import logging
 load_dotenv()
 from data.nl_generation.utils import OpenAIDecodingArguments, openai_completion
 
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
     pass
 
 MODELS_DIR = "/data/llms/"
+DATASET_DIR = "/data/datasets/"
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 # Set environment variables
@@ -49,44 +52,72 @@ def significant(x: Number, ndigits=2) -> Number:
 
     return round(x, ndigits - int(math.floor(math.log10(abs(x)))))
 
+def _make_w_io_base(f, mode: str):
+    if not isinstance(f, io.IOBase):
+        f_dirname = os.path.dirname(f)
+        if f_dirname != "":
+            os.makedirs(f_dirname, exist_ok=True)
+        f = open(f, mode=mode)
+    return f
 
-def get_generator_fn(model_path, model_kwargs=None, tokenizer_kwargs=None, huggingface=True):
-    if huggingface:
-        model_kwargs = model_kwargs or {}
-        tokenizer_kwargs = tokenizer_kwargs or {}
-        # Generate text based on the prompt
-        model = AutoModelForCausalLM.from_pretrained(model_path, **model_kwargs)
-        if "Llama-3" in model_path:
-            model.half()
-        tokenizer = AutoTokenizer.from_pretrained(model_path, **tokenizer_kwargs)
-        if tokenizer.padding_side == "right":
-            tokenizer.padding_side = "left"
-        pipe = pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            model_kwargs={"torch_dtype": torch.bfloat16},
-            device_map="auto",
-        )
 
-        def generator_fn(messages, **generation_kwargs):
-            generation_kwargs.update({"tokenizer": tokenizer, "eos_token_id": tokenizer.eos_token_id, "pad_token_id": tokenizer.pad_token_id})
-            return pipe(messages, **generation_kwargs)
+def _make_r_io_base(f, mode: str):
+    if not isinstance(f, io.IOBase):
+        f = open(f, mode=mode)
+    return f
+
+
+def jdump(obj, f, mode="w", indent=4, default=str):
+    """Dump a str or dictionary to a file in json format.
+
+    Args:
+        obj: An object to be written.
+        f: A string path to the location on disk.
+        mode: Mode for opening the file.
+        indent: Indent for storing json dictionaries.
+        default: A function to handle non-serializable entries; defaults to `str`.
+    """
+    f = _make_w_io_base(f, mode)
+    if isinstance(obj, (dict, list)):
+        json.dump(obj, f, indent=indent, default=default)
+    elif isinstance(obj, str):
+        f.write(obj)
     else:
-        def generator_fn(messages, **generation_kwargs):
-            decoding_args = OpenAIDecodingArguments(
-                **generation_kwargs
-            )
-            if isinstance(messages, List) and isinstance(messages[0], List):
-                generated_texts = []
-                for message in tqdm(messages, desc="Generating texts", total=len(messages)):
-                    generated_text = openai_completion(message, model_name=model_path, decoding_args=decoding_args,
+        raise ValueError(f"Unexpected type: {type(obj)}")
+    f.close()
+
+
+def jload(f, mode="r"):
+    """Load a .json file into a dictionary."""
+    f = _make_r_io_base(f, mode)
+    jdict = json.load(f)
+    f.close()
+    return jdict
+
+
+def get_generator_fn(model_name, path):
+    def generator_fn(messages, **generation_kwargs):
+        decoding_args = OpenAIDecodingArguments(
+            **generation_kwargs
+        )
+        if isinstance(messages, List) and isinstance(messages[0], List):
+            generated_texts = []
+            if os.path.exists(f"{path}/generations_partial.json"):
+                generated_texts = jload(f"{path}/generations_partial.json")
+            try:
+                for i, message in tqdm(enumerate(messages), desc="Generating texts with OpenAI", total=len(messages)):
+                    if i < len(generated_texts):
+                        continue
+                    generated_text = openai_completion(message, model_name=model_name, decoding_args=decoding_args,
                                                        return_text=True)
                     generated_texts.append(generated_text)
                 return generated_texts
-            else:
-                generated_texts = openai_completion(messages, model_name=model_path, decoding_args=decoding_args,
-                                               return_text=True)
-            return [generated_texts]
+            except Exception or KeyboardInterrupt as e:
+                jdump(generated_texts, f"{path}/generations_partial.json")
+                raise e
+        else:
+            generated_texts = openai_completion(messages, model_name=model_name, decoding_args=decoding_args,
+                                           return_text=True)
+        return [generated_texts]
 
     return generator_fn

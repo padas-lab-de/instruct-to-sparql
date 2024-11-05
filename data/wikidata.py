@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 import requests
 from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper.SPARQLExceptions import EndPointInternalError
 from requests.exceptions import HTTPError, ConnectionError
 from tenacity import wait_random_exponential, stop_after_attempt, retry, retry_if_exception_type
 
@@ -33,9 +34,13 @@ class WikidataAPI:
                  sparql_endpoint: str = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql',
                  start_tag: str = "[QUERY]",
                  end_tag: str = "[/QUERY]",
-                 timeout: int = 60) -> None:
+                 timeout: int = 60,
+                 agent_id=0) -> None:
         self.base_url = base_url
-        self.sparql = SPARQLWrapper(sparql_endpoint, returnFormat=JSON)
+        self.sparql_agent = f"WikidataLLM Query evaluator v{agent_id}"
+        self.api_agent = f"WikidataLLM Entity Translator v{agent_id}"
+        self.sparql = SPARQLWrapper(sparql_endpoint, returnFormat=JSON,
+                                    agent=self.sparql_agent)
         self.sparql.setTimeout(timeout)
         self.start_tag = start_tag
         self.end_tag = end_tag
@@ -71,7 +76,7 @@ class WikidataAPI:
         if search_property:
             payload.update({"type": "property"})
 
-        response = requests.get(self.base_url, params=payload, headers={'User-agent': 'WikidataLLM bot v0'})
+        response = requests.get(self.base_url, params=payload, headers={'User-agent': f"{self.api_agent}"})
         response.raise_for_status()
         return response
 
@@ -133,16 +138,16 @@ class WikidataAPI:
             try:
                 return self._smart_get_label_from_wbsearchentities(name, is_property=is_property,
                                                                    num_recurrence=num_recurrence - 1)
-            except RecursionError:
-                return [(name, name)]
+            except RecursionError as e:
+                raise e
             except Exception as inst:
                 raise inst
         except Exception:
             try:
                 return self._smart_get_label_from_wbsearchentities(name, is_property=(not is_property),
                                                                    num_recurrence=num_recurrence - 1)
-            except RecursionError:
-                return [(name, name)]
+            except RecursionError as e:
+                raise e
             except Exception as inst:
                 raise inst
 
@@ -225,10 +230,34 @@ class WikidataAPI:
         return query
 
     def find_entities(self, name: str) -> List[Tuple[str, str]]:
-        return self._smart_get_label_from_wbsearchentities(name, is_property=False)
+        try:
+            return self._smart_get_label_from_wbsearchentities(name, is_property=False)
+        except Exception as exception:
+            name_parts = name.split(" ")
+            if len(name_parts) > 1:
+                for i in range(1, len(name_parts)):
+                    try:
+                        return self._smart_get_label_from_wbsearchentities(" ".join(name_parts[:i]),
+                                                                           is_property=False)
+                    except Exception as e:
+                        return [(name, name)]
+            else:
+                return [(name, name)]
 
     def find_properties(self, name: str) -> List[Tuple[str, str]]:
-        return self._smart_get_label_from_wbsearchentities(name, is_property=True)
+        try:
+            return self._smart_get_label_from_wbsearchentities(name, is_property=True)
+        except Exception as exception:
+            name_parts = name.split(" ")
+            if len(name_parts) > 1:
+                for i in range(1, len(name_parts)):
+                    try:
+                        return self._smart_get_label_from_wbsearchentities(" ".join(name_parts[:i]),
+                                                                           is_property=True)
+                    except Exception as e:
+                        return [(name, name)]
+            else:
+                return [(name, name)]
 
     def execute_sparql(self, query: str, timeout: int = None) -> SPARQLResponse:
         # url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
@@ -238,12 +267,8 @@ class WikidataAPI:
         if timeout:
             self.set_timeout(timeout)
         response = self.query(query)
-        try:
-            data = SPARQLResponse(response)
-        except requests.exceptions.JSONDecodeError:
-            data = SPARQLResponse(response)
 
-        return data
+        return SPARQLResponse(response)
 
     def set_timeout(self, timeout: int):
         self.sparql.setTimeout(timeout)

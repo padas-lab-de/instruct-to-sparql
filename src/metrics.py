@@ -8,7 +8,7 @@ from tqdm import tqdm
 from transformers import EvalPrediction
 from transformers import logging
 import random
-from utils import significant
+from src.utils import significant
 
 logger = logging.get_logger(__name__)
 

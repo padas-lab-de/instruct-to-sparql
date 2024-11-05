@@ -28,7 +28,7 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
             output_texts = []
             label_texts = []
             for i in range(len(example[output_key])):
-                text = f"{system_prompt}\n\n### Question: {example['nl_generation'][i]}\n"
+                text = f"{system_prompt}\n\n### Question: {example['instructions'][i]}\n"
                 assistant_message = answer_template.format(query=example[output_key][i], start_tag=start_tag,
                                                            end_tag=end_tag)
                 if split == "train":
@@ -62,7 +62,7 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
                     },
                     {
                         "role": "user",
-                        "content": example['nl_generation'][i]
+                        "content": example['instructions'][i]
                     }
                 ]
                 if split == "train":
@@ -81,7 +81,7 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
                 except TemplateError as e:
                     if "user/assistant/user/assistant/" in str(
                             e) or "Only user and assistant roles are supported" in str(e):
-                        user_message = system_prompt + "\n\n" + example['nl_generation'][i]
+                        user_message = system_prompt + "\n\n" + example['instructions'][i]
                         chat = [
                             {
                                 "role": "user",
@@ -115,8 +115,8 @@ def get_formatting_func(tokenizer, formatting_style="chatml", annotated=False,
         raise ValueError("Formatting style not supported")
 
 
-def get_formatting_eval_func(annotated=False,
-                             start_tag="[QUERY]", end_tag="[/QUERY]", few_shots=None):
+def get_formatting_eval_func(tokenizer=None, annotated=False,
+                            start_tag="[QUERY]", end_tag="[/QUERY]", few_shot_eval=False):
     """Return formatting function based on the formatting style"""
     system_prompt = f"You are a helpful assistant. Your task is to provide a SPARQL query that answers the user's question. The query should be written between the tags {start_tag} and {end_tag}."
     if annotated:
@@ -124,21 +124,26 @@ def get_formatting_eval_func(annotated=False,
                         "Convert the instruction or question into a SPARQL query. QIDs of entities and properties can be defined as text label.\n" \
                         f"Example: wdt:[property:instance of] instead of wdt:P31.\nThe query should be returned between the tags {start_tag} and {end_tag}."
 
-    if few_shots:
-        system_prompt += f"\n\n {few_shots}"
 
     def formatting_chatml_func(example):
+        sys_prompt = system_prompt
+        if few_shot_eval and example['few_shots']!= "":
+            sys_prompt += f"\n\n {example['few_shots']}"
         chat = [
             {
                 "role": "system",
-                "content": system_prompt
+                "content": sys_prompt
             },
             {
                 "role": "user",
-                "content": example['nl_generation']
+                "content": example['instructions']
             }
         ]
-        example["messages"] = chat
+        if tokenizer:
+            example["prompt"] = tokenizer.apply_chat_template(
+                chat, tokenize=False, add_generation_prompt=True)
+        else:
+            example["messages"] = chat
         return example
 
     return formatting_chatml_func
